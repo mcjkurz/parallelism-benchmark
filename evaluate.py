@@ -85,11 +85,10 @@ def evaluate_couplet_induced_poem_accuracy(couplet_model, raw_poem_data, tokeniz
 
             inner_couplets = [couplets[1], couplets[2]]
 
-            l1s = [c[0] for c in inner_couplets]
-            l2s = [c[1] for c in inner_couplets]
+            couplet_strs = [c[0] + "，" + c[1] for c in inner_couplets]
 
             encoded = tokenizer(
-                l1s, l2s,
+                couplet_strs,
                 truncation=True, padding=True, max_length=64, return_tensors="pt"
             ).to(device)
 
