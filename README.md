@@ -7,6 +7,8 @@ Chinese poetry parallelism detection benchmark across multiple granularity level
 ```bash
 git clone https://github.com/mcjkurz/parallelism-benchmark
 cd parallelism-benchmark
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 python setup.py
 ```
