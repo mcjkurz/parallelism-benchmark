@@ -2,6 +2,7 @@ import random
 import re
 import json
 import time
+import os
 from tqdm.auto import tqdm
 
 random.seed(42)
@@ -10,13 +11,23 @@ def load_poems():
     chinese_only = re.compile(r'^[\u4e00-\u9fff]+$')
     poems = []
     accepted_poem_types = ["五言律诗"]
-    files = ["data/poems/" + file for file in [
-        "唐.csv", "宋_1.csv", "宋_2.csv", "宋_3.csv", "元.csv",
-        "明_1.csv", "明_2.csv", "明_3.csv", "明_4.csv",
-        "清_1.csv", "清_2.csv", "清_3.csv"
-    ]]
+    cached_file = "data/poems/penta_regulated.csv"
+    
+    # Check if cached file exists
+    if os.path.exists(cached_file):
+        print(f"Loading from cached file: {cached_file}")
+        files = [cached_file]
+    else:
+        print(f"Cached file not found. Processing individual files...")
+        files = ["data/poems/" + file for file in [
+            "唐.csv", "宋_1.csv", "宋_2.csv", "宋_3.csv", "元.csv",
+            "明_1.csv", "明_2.csv", "明_3.csv", "明_4.csv",
+            "清_1.csv", "清_2.csv", "清_3.csv"
+        ]]
 
     full_str_set = set()
+    cache_lines = []  # Store lines for caching
+    
     for file in tqdm(files, desc="Loading poems"):
         with open(file, "r") as f:
             lines = [line.strip() for line in f.read().split("\n") if len(line.strip()) > 0]
@@ -40,6 +51,15 @@ def load_poems():
                             "line_match": [0, 0, 0, 0]
                         }
                         poems.append(poem_data)
+                        # Store original line for caching
+                        if file != cached_file:
+                            cache_lines.append(line)
+    
+    # Save to cached file if we processed individual files
+    if not os.path.exists(cached_file) and cache_lines:
+        print(f"Saving {len(cache_lines)} poems to {cached_file}")
+        with open(cached_file, "w") as f:
+            f.write("\n".join(cache_lines))
 
     return poems
 

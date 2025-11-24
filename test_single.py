@@ -107,8 +107,8 @@ def main():
     poem4_model = PoemParallelismClassifier.from_pretrained("saved_artifacts/poem4_model").to(device)
     poem1_model = BertForSequenceClassification.from_pretrained("saved_artifacts/poem1_model").to(device)
 
-    l1 = "重重山树暗"
-    l2 = "历历水花幽"
+    l1 = "食尽僧行脚"
+    l2 = "兵来佛舍身"
 
     poem_couplets = [
         ("春眠不觉晓", "处处闻啼鸟"),
