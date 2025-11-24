@@ -5,6 +5,8 @@ Chinese poetry parallelism detection benchmark across multiple granularity level
 ## Setup
 
 ```bash
+git clone https://github.com/mcjkurz/parallelism-benchmark
+cd parallelism-benchmark
 pip install -r requirements.txt
 python setup.py
 ```
