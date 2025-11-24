@@ -90,11 +90,11 @@ def main():
         num_couplets=4,
         num_labels=2
     )
-    poem4_model = train_model(poem4_model, poem4_train_ds, epochs=4)
+    poem4_model = train_model(poem4_model, poem4_train_ds, epochs=2)
 
     print("\nTraining Poem 1-Label Model...")
     poem1_model = BertForSequenceClassification.from_pretrained(pretrained_model_name, num_labels=2)
-    poem1_model = train_model(poem1_model, poem1_train_ds, epochs=1)
+    poem1_model = train_model(poem1_model, poem1_train_ds, epochs=2)
 
     print("\nSaving models and data...")
     char_model.save_pretrained("saved_artifacts/char_model")

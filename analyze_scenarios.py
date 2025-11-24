@@ -112,6 +112,7 @@ def generate_comparison_data(data, poem4_model, poem1_model, coup_model, char_mo
                 "l1": l1,
                 "l2": l2,
                 "truth": truth,
+                "truth_full": labels,
                 "pred_char": char_cons,
                 "pred_char_details": char_dets,
                 "pred_coup": coup_pred,
@@ -140,13 +141,13 @@ def format_example(row, count):
     parts.append(f"Ground Truth: {row['truth']}")
 
     c_status = "✅" if row['pred_char'] == row['truth'] else "❌"
-    parts.append(f"Char Model:    {row['pred_char']} {c_status} | Details: {row['pred_char_details']}")
+    parts.append(f"Char Model:    {row['pred_char']} {c_status} | Prediction: {row['pred_char_details']} (Consensus: {row['pred_char']})")
 
     cp_status = "✅" if row['pred_coup'] == row['truth'] else "❌"
     parts.append(f"Couplet Model: {row['pred_coup']} {cp_status} | (Correct Level)")
 
     p4_status = "✅" if row['pred_poem4'] == row['truth'] else "❌"
-    parts.append(f"Poem4 Model:   {row['pred_poem4']} {p4_status} | Details: {row['pred_poem4_full']}")
+    parts.append(f"Poem4 Model:   {row['pred_poem4']} {p4_status} | Prediction: {row['pred_poem4_full']} | Truth: {row['truth_full']}")
 
     if row['couplet_idx'] in [1, 2]:
         p1_global = row['pred_poem1_global']

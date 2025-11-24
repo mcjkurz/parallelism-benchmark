@@ -1,6 +1,7 @@
 import random
 import re
 import json
+import time
 from tqdm.auto import tqdm
 
 random.seed(42)
@@ -43,6 +44,9 @@ def load_poems():
     return poems
 
 def label_char_matches(poems):
+    print("Labeling char matches...")
+    start_time = time.time()
+    
     with open("data/char_communities.json", "r", encoding='utf-8') as json_file:
         communities = json.load(json_file)
         for key in communities.keys():
@@ -61,15 +65,20 @@ def label_char_matches(poems):
                 else:
                     wrong_poem_ids.add(poem_id)
     
+    elapsed_time = time.time() - start_time
     print(f"Pre-filtering: {len(poems)}")
     poems = [poems[i] for i in range(len(poems)) if i not in wrong_poem_ids]
     print(f"Post-filtering: {len(poems)}")
+    print(f"Char matching completed in {elapsed_time:.2f} seconds")
     return poems
 
 def label_line_matches(poems):
     from transformers import pipeline
     
-    random.seed(43)
+    print("Labeling line matches...")
+    start_time = time.time()
+    
+    random.seed(42)
     poems = random.sample(poems, k=min(80000, len(poems)))
 
     classifier = pipeline(
@@ -104,6 +113,9 @@ def label_line_matches(poems):
         if all(s is not None and s > 0.8 for s in poem["scores"]):
             filtered_poems.append(poem)
 
+    elapsed_time = time.time() - start_time
+    print(f"Line matching completed in {elapsed_time:.2f} seconds")
+    
     return filtered_poems
 
 def prepare_data():
