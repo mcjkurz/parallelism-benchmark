@@ -1,26 +1,28 @@
 #!/bin/bash
 #
 # Pipeline script for parallelism benchmark
-# Runs training and multi-trial evaluation
 #
 # Usage:
-#   ./pipeline.sh              # Run with default 100 trials
-#   ./pipeline.sh 50           # Run with 50 trials
-#   ./pipeline.sh 100 --skip-train  # Skip training, only run evaluation
+#   ./pipeline.sh              # Prepare data + run 1 trial
+#   ./pipeline.sh 100          # Prepare data + run 100 trials
+#   ./pipeline.sh --skip-prep  # Skip data preparation, only run trials
+#   ./pipeline.sh 50 --skip-prep  # Run 50 trials without data prep
 #
 
 set -e  # Exit on error
 
 # Configuration
-NUM_TRIALS=${1:-100}
-SKIP_TRAIN=false
+NUM_TRIALS=${1:-1}
+SKIP_PREP=false
 
 # Parse arguments
 for arg in "$@"; do
     case $arg in
-        --skip-train)
-            SKIP_TRAIN=true
-            shift
+        --skip-prep)
+            SKIP_PREP=true
+            ;;
+        [0-9]*)
+            NUM_TRIALS=$arg
             ;;
     esac
 done
@@ -42,35 +44,32 @@ if [ -d "venv" ]; then
     source venv/bin/activate
 fi
 
-# Create output directory
-mkdir -p saved_artifacts
-
-# Step 1: Train models (generates Silver Standard + training splits)
-if [ "$SKIP_TRAIN" = false ]; then
-    echo -e "${GREEN}Step 1: Training models...${NC}"
-    echo "  This will also generate:"
-    echo "    - data/silver_standard.json (Silver Standard dataset)"
-    echo "    - saved_artifacts/*.json (training/test splits)"
+# Step 1: Prepare data (expensive, run once)
+if [ "$SKIP_PREP" = false ]; then
+    echo -e "${GREEN}Step 1: Preparing data...${NC}"
+    echo "  This classifies all couplets with SikuBERT (slow, run once)"
     echo ""
-    python3 train_models.py
-    echo ""
-    echo -e "${GREEN}Training complete!${NC}"
+    python3 prepare_data.py
     echo ""
 else
-    echo -e "${YELLOW}Skipping training (--skip-train flag set)${NC}"
+    if [ ! -f "data/silver_standard.json" ]; then
+        echo -e "${YELLOW}Warning: data/silver_standard.json not found!${NC}"
+        echo "  Run without --skip-prep first to generate the data."
+        exit 1
+    fi
+    echo -e "${YELLOW}Skipping data preparation (--skip-prep flag set)${NC}"
     echo ""
 fi
 
-# Step 2: Run multi-trial evaluation
-echo -e "${GREEN}Step 2: Running ${NUM_TRIALS}-trial evaluation...${NC}"
-echo "  This trains and evaluates models ${NUM_TRIALS} times with different seeds"
-echo "  to compute mean ± std statistics."
+# Step 2: Run trials
+echo -e "${GREEN}Step 2: Running ${NUM_TRIALS} trial(s)...${NC}"
+echo "  Each trial samples data, trains models, and evaluates."
 echo ""
-python3 evaluate.py --trials ${NUM_TRIALS} --output evaluation_results.json
+python3 run_trials.py --trials ${NUM_TRIALS} --output evaluation_results.json
 echo ""
 
 # Step 3: Display results summary
-echo -e "${GREEN}Step 3: Results Summary${NC}"
+echo -e "${GREEN}Results Summary${NC}"
 echo -e "${BLUE}============================================${NC}"
 python3 -c "
 import json
@@ -79,26 +78,27 @@ with open('evaluation_results.json', 'r') as f:
 
 print(f\"Number of trials: {data['num_trials']}\")
 print()
-print('Metric                      Mean ± Std')
-print('-' * 45)
-for key, stats in data['statistics'].items():
-    mean = stats['mean']
-    std = stats['std']
-    print(f'{key:28} {mean:.4f} ± {std:.4f}')
+
+if 'statistics' in data:
+    print('Metric                      Mean ± Std')
+    print('-' * 45)
+    for key, stats in data['statistics'].items():
+        mean = stats['mean']
+        std = stats['std']
+        print(f'{key:28} {mean:.4f} ± {std:.4f}')
+else:
+    print('Single trial results:')
+    print('-' * 45)
+    for key, value in data['trials'][0].items():
+        if key != 'seed':
+            print(f'{key:28} {value:.4f}')
 "
 echo -e "${BLUE}============================================${NC}"
 echo ""
 
-# Step 4: List generated files
 echo -e "${GREEN}Generated files:${NC}"
-echo "  - data/silver_standard.json"
-echo "  - saved_artifacts/char_train.json, char_test.json"
-echo "  - saved_artifacts/coup_train.json, coup_test.json"
-echo "  - saved_artifacts/poem4_train.json, poem4_test.json"
-echo "  - saved_artifacts/poem1_train.json, poem1_test.json"
-echo "  - saved_artifacts/{char,coup,poem4,poem1}_model/"
-echo "  - evaluation_results.json"
+echo "  - data/silver_standard.json (pre-classified poems)"
+echo "  - evaluation_results.json (trial results)"
 echo ""
 
 echo -e "${GREEN}Pipeline complete!${NC}"
-

@@ -24,13 +24,15 @@ def split_raw_data(data, train_ratio=0.9, seed=42):
     test_data = data_copy[split_idx:]
     return train_data, test_data
 
-def create_training_datasets(poems, count=10000):
+def create_training_datasets(poems, count=10000, seed=42):
+    random.seed(seed)
+    
     training_data_characters = []
     training_data_couplets = []
     training_data_poems_4labels = []
     training_data_poems_1label = []
 
-    for poem in tqdm(poems, desc="Creating training data"):
+    for poem in tqdm(poems, desc="Creating training data", leave=False):
         if len(poem["couplets"]) != 4 or len(poem["line_match"]) != 4:
             continue
 

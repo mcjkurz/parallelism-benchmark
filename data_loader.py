@@ -95,6 +95,10 @@ def label_char_matches(poems):
 def label_line_matches(poems):
     from transformers import pipeline
     import torch
+    import warnings
+    
+    # Suppress the "pipeline sequential on GPU" warning - we use manual batching for progress tracking
+    warnings.filterwarnings("ignore", message=".*sequential.*GPU.*")
     
     print("Labeling line matches...", flush=True)
     start_time = time.time()

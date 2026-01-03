@@ -1,38 +1,37 @@
 """
-Evaluate parallelism detection models.
+Run training and evaluation trials for parallelism detection models.
+
+This script loads the pre-classified data from data/silver_standard.json
+(created by prepare_data.py) and runs one or more trials with different
+random seeds.
 
 Usage:
-    python evaluate.py              # Single evaluation on saved models
-    python evaluate.py --trials 100 # Multi-trial evaluation with statistics
+    python run_trials.py                    # Single trial (seed=42)
+    python run_trials.py --trials 100       # 100 trials with different seeds
+    python run_trials.py --output results.json  # Custom output file
 """
 
-import torch
+import argparse
+import json
 import random
 import numpy as np
+import torch
 from torch.utils.data import DataLoader
-from transformers import BertTokenizerFast, BertForSequenceClassification
 from tqdm.auto import tqdm
-import pickle
-import json
 
 from datasets import CharPairDataset, CoupletDataset, PoemDataset4Labels, PoemDataset1Label
 from models import PoemParallelismClassifier
-from data_loader import prepare_data
 from utils import create_training_datasets, split_raw_data
 from train_utils import (
-    get_device, create_tokenizer, train_all_models, free_memory,
-    PRETRAINED_MODEL_NAME
+    get_device, create_tokenizer, train_all_models, free_memory
 )
-
-device = get_device()
-print(f"Using device: {device}")
 
 
 # =============================================================================
 # Evaluation Functions
 # =============================================================================
 
-def evaluate_standard(model, dataset, batch_size=32):
+def evaluate_standard(model, dataset, device, batch_size=32):
     """Evaluate model accuracy on a dataset."""
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     model.to(device)
@@ -42,7 +41,7 @@ def evaluate_standard(model, dataset, batch_size=32):
     total = 0
 
     with torch.no_grad():
-        for batch in tqdm(loader, desc="Evaluating", leave=False):
+        for batch in loader:
             batch = {k: v.to(device) for k, v in batch.items()}
             labels = batch["labels"]
             outputs = model(**batch)
@@ -60,14 +59,14 @@ def evaluate_standard(model, dataset, batch_size=32):
     return correct / total if total > 0 else 0.0
 
 
-def evaluate_char_induced_couplet_accuracy(char_model, raw_couplet_data, tokenizer):
+def evaluate_char_induced_couplet_accuracy(char_model, raw_couplet_data, tokenizer, device):
     """Evaluate couplet accuracy induced by character-level predictions."""
     char_model.eval()
     correct = 0
     total = 0
 
     with torch.no_grad():
-        for item in tqdm(raw_couplet_data, desc="Char->Couplet Eval", leave=False):
+        for item in raw_couplet_data:
             l1, l2 = item["couplet"]
             true_label = item["label"]
 
@@ -93,14 +92,14 @@ def evaluate_char_induced_couplet_accuracy(char_model, raw_couplet_data, tokeniz
     return correct / total if total > 0 else 0.0
 
 
-def evaluate_couplet_induced_poem_accuracy(couplet_model, raw_poem_data, tokenizer):
+def evaluate_couplet_induced_poem_accuracy(couplet_model, raw_poem_data, tokenizer, device):
     """Evaluate poem accuracy induced by couplet-level predictions."""
     couplet_model.eval()
     correct = 0
     total = 0
 
     with torch.no_grad():
-        for item in tqdm(raw_poem_data, desc="Couplet->Poem Eval", leave=False):
+        for item in raw_poem_data:
             couplets = item["couplets"]
             true_label = item["label"]
 
@@ -124,7 +123,7 @@ def evaluate_couplet_induced_poem_accuracy(couplet_model, raw_poem_data, tokeniz
     return correct / total if total > 0 else 0.0
 
 
-def evaluate_poem4_inner_accuracy(model, dataset):
+def evaluate_poem4_inner_accuracy(model, dataset, device):
     """Evaluate Poem4 model accuracy on inner couplets only."""
     loader = DataLoader(dataset, batch_size=16, shuffle=False)
     model.eval()
@@ -147,14 +146,14 @@ def evaluate_poem4_inner_accuracy(model, dataset):
     return correct / total if total > 0 else 0.0
 
 
-def evaluate_poem1_inner_accuracy(poem1_model, raw_poem_data, tokenizer):
+def evaluate_poem1_inner_accuracy(poem1_model, raw_poem_data, tokenizer, device):
     """Evaluate Poem1 model accuracy on inner couplet prediction."""
     poem1_model.eval()
     correct = 0
     total = 0
 
     with torch.no_grad():
-        for item in tqdm(raw_poem_data, desc="Poem1 Inner-Couplet Eval", leave=False):
+        for item in raw_poem_data:
             couplets = item["couplets"]
 
             if "line_match" in item:
@@ -190,7 +189,7 @@ def evaluate_poem1_inner_accuracy(poem1_model, raw_poem_data, tokenizer):
 
 
 # =============================================================================
-# Multi-Trial Evaluation
+# Trial Execution
 # =============================================================================
 
 def set_seed(seed):
@@ -202,13 +201,21 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
 
 
-def run_single_trial(poems, seed, tokenizer):
+def load_silver_standard(path="data/silver_standard.json"):
+    """Load the pre-classified poems from JSON."""
+    with open(path, "r", encoding="utf-8") as f:
+        poems = json.load(f)
+    print(f"Loaded {len(poems)} pre-classified poems from {path}")
+    return poems
+
+
+def run_single_trial(poems, seed, tokenizer, device, verbose=True):
     """Run a single training and evaluation trial with the given seed."""
     set_seed(seed)
     
-    # Create and split datasets
+    # Create and split datasets with this seed
     training_data_characters, training_data_couplets, training_data_poems_4labels, training_data_poems_1label = \
-        create_training_datasets(poems)
+        create_training_datasets(poems, seed=seed)
     
     char_train_raw, char_test_raw = split_raw_data(training_data_characters, seed=seed)
     coup_train_raw, coup_test_raw = split_raw_data(training_data_couplets, seed=seed)
@@ -229,152 +236,145 @@ def run_single_trial(poems, seed, tokenizer):
     # Train all models
     char_model, coup_model, poem4_model, poem1_model = train_all_models(
         char_train_ds, coup_train_ds, poem4_train_ds, poem1_train_ds,
-        tokenizer, device=device, verbose=False
+        tokenizer, device=device, verbose=verbose
     )
     
     # Evaluate all models
     results = {
-        "char_acc": evaluate_standard(char_model, char_test_ds),
-        "coup_acc": evaluate_standard(coup_model, coup_test_ds),
-        "poem4_overall_acc": evaluate_standard(poem4_model, poem4_test_ds),
-        "poem4_inner_acc": evaluate_poem4_inner_accuracy(poem4_model, poem4_test_ds),
-        "poem1_acc": evaluate_standard(poem1_model, poem1_test_ds),
-        "poem1_inner_acc": evaluate_poem1_inner_accuracy(poem1_model, poem1_test_raw, tokenizer),
-        "char_induced_coup_acc": evaluate_char_induced_couplet_accuracy(char_model, coup_test_raw, tokenizer),
-        "coup_induced_poem_acc": evaluate_couplet_induced_poem_accuracy(coup_model, poem1_test_raw, tokenizer),
+        "seed": seed,
+        "char_acc": evaluate_standard(char_model, char_test_ds, device),
+        "coup_acc": evaluate_standard(coup_model, coup_test_ds, device),
+        "poem4_overall_acc": evaluate_standard(poem4_model, poem4_test_ds, device),
+        "poem4_inner_acc": evaluate_poem4_inner_accuracy(poem4_model, poem4_test_ds, device),
+        "poem1_acc": evaluate_standard(poem1_model, poem1_test_ds, device),
+        "poem1_inner_acc": evaluate_poem1_inner_accuracy(poem1_model, poem1_test_raw, tokenizer, device),
+        "char_induced_coup_acc": evaluate_char_induced_couplet_accuracy(char_model, coup_test_raw, tokenizer, device),
+        "coup_induced_poem_acc": evaluate_couplet_induced_poem_accuracy(coup_model, poem1_test_raw, tokenizer, device),
     }
     
-    # Clean up
+    # Clean up models (don't save them)
     del char_model, coup_model, poem4_model, poem1_model
     free_memory(device)
     
     return results
 
 
-def run_multi_trial_evaluation(num_trials=100, output_file="evaluation_results.json"):
-    """Run multiple training/evaluation trials and compute statistics."""
-    print(f"\n{'='*60}")
-    print(f"Running {num_trials} trials for statistical evaluation")
-    print(f"{'='*60}\n")
+def compute_statistics(all_results):
+    """Compute mean, std, min, max for each metric across trials."""
+    # Get all metric keys (excluding 'seed')
+    metric_keys = [k for k in all_results[0].keys() if k != "seed"]
     
-    # Prepare data once
-    print("Preparing data...")
-    poems = prepare_data(export_silver=False)
+    statistics = {}
+    for key in metric_keys:
+        values = [r[key] for r in all_results]
+        values_np = np.array(values)
+        statistics[key] = {
+            "mean": float(np.mean(values_np)),
+            "std": float(np.std(values_np)),
+            "min": float(np.min(values_np)),
+            "max": float(np.max(values_np)),
+        }
     
-    # Initialize tokenizer once
+    return statistics
+
+
+def run_trials(num_trials, output_file, silver_path="data/silver_standard.json"):
+    """Run training and evaluation trials."""
+    device = get_device()
+    print(f"Using device: {device}")
+    
+    print()
+    print("=" * 60)
+    print(f"Running {num_trials} trial(s)")
+    print("=" * 60)
+    print()
+    
+    # Load pre-classified poems
+    poems = load_silver_standard(silver_path)
+    
+    # Initialize tokenizer
     tokenizer = create_tokenizer()
     
-    # Collect results
-    all_results = {
-        "char_acc": [],
-        "coup_acc": [],
-        "poem4_overall_acc": [],
-        "poem4_inner_acc": [],
-        "poem1_acc": [],
-        "poem1_inner_acc": [],
-        "char_induced_coup_acc": [],
-        "coup_induced_poem_acc": [],
-    }
-    
+    # Run trials
+    all_results = []
     for trial in range(num_trials):
         seed = 42 + trial
         print(f"\n--- Trial {trial + 1}/{num_trials} (seed={seed}) ---")
         
-        trial_results = run_single_trial(poems, seed, tokenizer)
+        verbose = (num_trials == 1)  # Only show progress bars for single trial
+        trial_results = run_single_trial(poems, seed, tokenizer, device, verbose=verbose)
+        all_results.append(trial_results)
         
-        for key, value in trial_results.items():
-            all_results[key].append(value)
-        
+        # Print summary for this trial
         print(f"  Char: {trial_results['char_acc']:.4f}  "
               f"Couplet: {trial_results['coup_acc']:.4f}  "
               f"Poem4: {trial_results['poem4_overall_acc']:.4f}  "
               f"Poem1: {trial_results['poem1_acc']:.4f}")
     
     # Compute and display statistics
-    print(f"\n{'='*60}")
-    print("FINAL STATISTICS")
-    print(f"{'='*60}\n")
+    print()
+    print("=" * 60)
+    print("RESULTS")
+    print("=" * 60)
+    print()
     
-    statistics = {}
-    for key, values in all_results.items():
-        values_np = np.array(values)
-        stats = {
-            "mean": float(np.mean(values_np)),
-            "std": float(np.std(values_np)),
-            "min": float(np.min(values_np)),
-            "max": float(np.max(values_np)),
-            "all_values": values,
+    if num_trials > 1:
+        statistics = compute_statistics(all_results)
+        
+        for key, stats in statistics.items():
+            print(f"{key}:")
+            print(f"  Mean: {stats['mean']:.4f} ± {stats['std']:.4f}")
+            print(f"  Range: [{stats['min']:.4f}, {stats['max']:.4f}]")
+            print()
+        
+        # Save results
+        output_data = {
+            "num_trials": num_trials,
+            "statistics": statistics,
+            "trials": all_results,
         }
-        statistics[key] = stats
-        print(f"{key}:")
-        print(f"  Mean: {stats['mean']:.4f} ± {stats['std']:.4f}")
-        print(f"  Range: [{stats['min']:.4f}, {stats['max']:.4f}]")
+    else:
+        # Single trial - just print and save the results
+        for key, value in all_results[0].items():
+            if key != "seed":
+                print(f"{key}: {value:.4f}")
         print()
+        
+        output_data = {
+            "num_trials": 1,
+            "trials": all_results,
+        }
     
-    # Save results
     with open(output_file, "w", encoding="utf-8") as f:
-        json.dump({"num_trials": num_trials, "statistics": statistics}, f, indent=2)
+        json.dump(output_data, f, indent=2)
     print(f"Results saved to {output_file}")
 
 
-# =============================================================================
-# Single Evaluation (on saved models)
-# =============================================================================
-
-def main_single():
-    """Evaluate pre-trained models from saved_artifacts/."""
-    print("Loading models and data...")
-    tokenizer = BertTokenizerFast.from_pretrained("saved_artifacts/tokenizer")
-    
-    char_model = BertForSequenceClassification.from_pretrained("saved_artifacts/char_model").to(device)
-    coup_model = BertForSequenceClassification.from_pretrained("saved_artifacts/coup_model").to(device)
-    poem4_model = PoemParallelismClassifier.from_pretrained("saved_artifacts/poem4_model").to(device)
-    poem1_model = BertForSequenceClassification.from_pretrained("saved_artifacts/poem1_model").to(device)
-
-    with open("saved_artifacts/char_test_raw.pkl", "rb") as f:
-        char_test_raw = pickle.load(f)
-    with open("saved_artifacts/coup_test_raw.pkl", "rb") as f:
-        coup_test_raw = pickle.load(f)
-    with open("saved_artifacts/poem4_test_raw.pkl", "rb") as f:
-        poem4_test_raw = pickle.load(f)
-    with open("saved_artifacts/poem1_test_raw.pkl", "rb") as f:
-        poem1_test_raw = pickle.load(f)
-
-    char_test_ds = CharPairDataset(char_test_raw, tokenizer)
-    coup_test_ds = CoupletDataset(coup_test_raw, tokenizer)
-    poem4_test_ds = PoemDataset4Labels(poem4_test_raw, tokenizer)
-    poem1_test_ds = PoemDataset1Label(poem1_test_raw, tokenizer)
-
-    print("\nEvaluating models...")
-    
-    print(f"Char Model Test Acc: {evaluate_standard(char_model, char_test_ds):.4f}")
-    print(f"Couplet Model Test Acc: {evaluate_standard(coup_model, coup_test_ds):.4f}")
-    
-    print(f"Poem4 Model Overall Acc: {evaluate_standard(poem4_model, poem4_test_ds):.4f}")
-    print(f"Poem4 Model Inner-Couplet Acc: {evaluate_poem4_inner_accuracy(poem4_model, poem4_test_ds):.4f}")
-    
-    print(f"Poem1 Model Test Acc: {evaluate_standard(poem1_model, poem1_test_ds):.4f}")
-    print(f"Poem1 Model Inner-Couplet Acc: {evaluate_poem1_inner_accuracy(poem1_model, poem1_test_raw, tokenizer):.4f}")
-
-    print("\nCross-Level Evaluations...")
-    print(f"Couplet Acc (Induced by Char Model): {evaluate_char_induced_couplet_accuracy(char_model, coup_test_raw, tokenizer):.4f}")
-    print(f"Poem Acc (Induced by Couplet Model): {evaluate_couplet_induced_poem_accuracy(coup_model, poem1_test_raw, tokenizer):.4f}")
-
-
 def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="Evaluate parallelism models")
-    parser.add_argument("--trials", type=int, default=0,
-                        help="Number of trials for statistical evaluation (0 = single evaluation)")
-    parser.add_argument("--output", type=str, default="evaluation_results.json",
-                        help="Output file for multi-trial results")
+    parser = argparse.ArgumentParser(
+        description="Run parallelism model training and evaluation trials"
+    )
+    parser.add_argument(
+        "--trials", type=int, default=1,
+        help="Number of trials to run (default: 1)"
+    )
+    parser.add_argument(
+        "--output", type=str, default="evaluation_results.json",
+        help="Output file for results (default: evaluation_results.json)"
+    )
+    parser.add_argument(
+        "--data", type=str, default="data/silver_standard.json",
+        help="Path to silver standard data (default: data/silver_standard.json)"
+    )
     args = parser.parse_args()
     
-    if args.trials > 0:
-        run_multi_trial_evaluation(num_trials=args.trials, output_file=args.output)
-    else:
-        main_single()
+    run_trials(
+        num_trials=args.trials,
+        output_file=args.output,
+        silver_path=args.data,
+    )
 
 
 if __name__ == "__main__":
     main()
+
