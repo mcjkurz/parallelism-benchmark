@@ -24,50 +24,51 @@ python setup.py
 Run the complete pipeline with 100 trials for statistical evaluation:
 
 ```bash
-./pipeline.sh
+./pipeline.sh 100
 ```
 
 Options:
 ```bash
-./pipeline.sh 50              # Run with 50 trials instead of 100
-./pipeline.sh 100 --skip-train  # Skip training, only run multi-trial evaluation
+./pipeline.sh                    # Default: 1 trial
+./pipeline.sh 50                 # Run with 50 trials
+./pipeline.sh --skip-prep        # Skip data preparation, only run trials
+./pipeline.sh --max-poems 10000  # Only classify 10k poems (faster)
 ```
 
 This will:
-1. Train all 4 models (1 epoch each)
-2. Export the Silver Standard dataset to `data/silver_standard.json`
-3. Export training/test splits to `saved_artifacts/*.json`
-4. Run 100 training+evaluation trials with different seeds
-5. Report mean ± std statistics for all metrics
+1. Prepare the Silver Standard dataset using SikuBERT (one-time, slow)
+2. Export labeled poems to `data/silver_standard.json`
+3. Run N training+evaluation trials with different seeds
+4. Report mean ± std statistics for all metrics
 
 ## Usage (Individual Scripts)
 
-### 1. Train Models
+### 1. Prepare Data
+
 ```bash
-python train_models.py
+python prepare_data.py
+python prepare_data.py --max-poems 10000  # Faster: only classify 10k poems
 ```
 
-Loads poems, prepares training data, and trains 4 models (1 epoch each):
-- Char-level model
-- Couplet-level model
-- Poem 4-label model
-- Poem 1-label model
+This runs the expensive one-time SikuBERT classification on all couplets.
+Saves results to `data/silver_standard.json`.
 
-Saves models to `saved_artifacts/` and exports:
-- `data/silver_standard.json`: Complete labeled dataset
-- `saved_artifacts/*_train.json`: Training splits
-- `saved_artifacts/*_test.json`: Test splits
+### 2. Run Trials
 
-### 2. Evaluate Models
 ```bash
-# Single evaluation on saved models
-python evaluate.py
-
-# Multi-trial statistical evaluation (trains + evaluates N times)
-python evaluate.py --trials 100 --output results.json
+python run_trials.py                      # Single trial (seed=42)
+python run_trials.py --trials 100         # 100 trials with different seeds
+python run_trials.py --training-samples 5000  # Use 5000 training samples per task
+python run_trials.py --output results.json  # Custom output file
 ```
+
+Each trial:
+- Samples training data from the silver standard
+- Trains 4 models (char, couplet, poem-4label, poem-1label)
+- Evaluates on held-out test set
 
 ### 3. Analyze Scenarios
+
 ```bash
 python analyze_scenarios.py
 ```
@@ -78,6 +79,7 @@ Analyzes specific failure scenarios and saves results to text files:
 - `scenario_C.txt`: Poem1 global hallucination
 
 ### 4. Test Single Examples
+
 ```bash
 python test_single.py
 ```
@@ -89,10 +91,9 @@ Tests all models on single example inputs.
 ```
 parallelism-benchmark/
 ├── pipeline.sh           # Full pipeline script
+├── prepare_data.py       # Data preparation (SikuBERT classification)
+├── run_trials.py         # Training and evaluation trials
 ├── train_utils.py        # Shared training config & functions
-├── train_models.py       # Training pipeline
-├── evaluate.py           # Evaluation pipeline (single + multi-trial)
-├── data_loader.py        # Loads and preprocesses poems
 ├── datasets.py           # PyTorch dataset classes
 ├── models.py             # Custom model definitions
 ├── utils.py              # Data splitting helpers
@@ -116,6 +117,8 @@ EPOCHS_POEM4 = 1     # Poem 4-label model
 EPOCHS_POEM1 = 1     # Poem 1-label model
 ```
 
+Edit `run_trials.py --training-samples` to change target training samples per task (default: 10000).
+
 ## Output Files
 
 After running the pipeline:
@@ -123,8 +126,5 @@ After running the pipeline:
 | File | Description |
 |------|-------------|
 | `data/silver_standard.json` | Silver Standard dataset with parallelism labels |
-| `saved_artifacts/*_train.json` | Training splits for each model type |
-| `saved_artifacts/*_test.json` | Test splits for each model type |
-| `saved_artifacts/*_model/` | Trained HuggingFace models |
 | `evaluation_results.json` | Statistical results (mean ± std from N trials) |
 

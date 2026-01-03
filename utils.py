@@ -24,7 +24,7 @@ def split_raw_data(data, train_ratio=0.9, seed=42):
     test_data = data_copy[split_idx:]
     return train_data, test_data
 
-def create_training_datasets(poems, count=10000, seed=42):
+def create_training_datasets(poems, max_samples=10000, seed=42):
     random.seed(seed)
     
     training_data_characters = []
@@ -99,10 +99,10 @@ def create_training_datasets(poems, count=10000, seed=42):
     print(f"Poems 4-label: {len(training_data_poems_4labels)}")
     print(f"Poems 1-label: {len(training_data_poems_1label)}")
 
-    training_data_characters = random.sample(training_data_characters, k=min(count, len(training_data_characters)))
-    training_data_couplets = random.sample(training_data_couplets, k=min(count, len(training_data_couplets)))
-    training_data_poems_1label = random.sample(training_data_poems_1label, k=min(count, len(training_data_poems_1label)))
-    training_data_poems_4labels = random.sample(training_data_poems_4labels, k=min(count, len(training_data_poems_4labels)))
+    training_data_characters = random.sample(training_data_characters, k=min(max_samples, len(training_data_characters)))
+    training_data_couplets = random.sample(training_data_couplets, k=min(max_samples, len(training_data_couplets)))
+    training_data_poems_1label = random.sample(training_data_poems_1label, k=min(max_samples, len(training_data_poems_1label)))
+    training_data_poems_4labels = random.sample(training_data_poems_4labels, k=min(max_samples, len(training_data_poems_4labels)))
 
     return training_data_characters, training_data_couplets, training_data_poems_4labels, training_data_poems_1label
 

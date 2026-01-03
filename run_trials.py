@@ -8,6 +8,7 @@ random seeds.
 Usage:
     python run_trials.py                    # Single trial (seed=42)
     python run_trials.py --trials 100       # 100 trials with different seeds
+    python run_trials.py --training-samples 5000  # Use 5000 training examples per task
     python run_trials.py --output results.json  # Custom output file
 """
 
@@ -209,13 +210,13 @@ def load_silver_standard(path="data/silver_standard.json"):
     return poems
 
 
-def run_single_trial(poems, seed, tokenizer, device, verbose=True):
+def run_single_trial(poems, seed, tokenizer, device, training_samples=10000, verbose=True):
     """Run a single training and evaluation trial with the given seed."""
     set_seed(seed)
     
     # Create and split datasets with this seed
     training_data_characters, training_data_couplets, training_data_poems_4labels, training_data_poems_1label = \
-        create_training_datasets(poems, seed=seed)
+        create_training_datasets(poems, max_samples=training_samples, seed=seed)
     
     char_train_raw, char_test_raw = split_raw_data(training_data_characters, seed=seed)
     coup_train_raw, coup_test_raw = split_raw_data(training_data_couplets, seed=seed)
@@ -278,7 +279,7 @@ def compute_statistics(all_results):
     return statistics
 
 
-def run_trials(num_trials, output_file, silver_path="data/silver_standard.json"):
+def run_trials(num_trials, output_file, silver_path="data/silver_standard.json", training_samples=10000):
     """Run training and evaluation trials."""
     device = get_device()
     print(f"Using device: {device}")
@@ -286,6 +287,7 @@ def run_trials(num_trials, output_file, silver_path="data/silver_standard.json")
     print()
     print("=" * 60)
     print(f"Running {num_trials} trial(s)")
+    print(f"Target training samples per task: {training_samples}")
     print("=" * 60)
     print()
     
@@ -302,7 +304,7 @@ def run_trials(num_trials, output_file, silver_path="data/silver_standard.json")
         print(f"\n--- Trial {trial + 1}/{num_trials} (seed={seed}) ---")
         
         verbose = (num_trials == 1)  # Only show progress bars for single trial
-        trial_results = run_single_trial(poems, seed, tokenizer, device, verbose=verbose)
+        trial_results = run_single_trial(poems, seed, tokenizer, device, training_samples=training_samples, verbose=verbose)
         all_results.append(trial_results)
         
         # Print summary for this trial
@@ -366,12 +368,17 @@ def main():
         "--data", type=str, default="data/silver_standard.json",
         help="Path to silver standard data (default: data/silver_standard.json)"
     )
+    parser.add_argument(
+        "--training-samples", type=int, default=10000,
+        help="Target number of training samples per task (default: 10000)"
+    )
     args = parser.parse_args()
     
     run_trials(
         num_trials=args.trials,
         output_file=args.output,
         silver_path=args.data,
+        training_samples=args.training_samples,
     )
 
 
