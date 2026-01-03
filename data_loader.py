@@ -138,9 +138,36 @@ def label_line_matches(poems):
     
     return filtered_poems
 
-def prepare_data():
+def export_silver_standard(poems, output_path="data/silver_standard.json"):
+    """Export the Silver Standard dataset with all labels to JSON format."""
+    import json
+    
+    export_data = []
+    for poem in poems:
+        export_item = {
+            "dynasty": poem["dynasty"],
+            "couplets": poem["couplets"],
+            "char_match": poem["char_match"],
+            "line_match": poem["line_match"],
+        }
+        if "scores" in poem:
+            export_item["confidence_scores"] = poem["scores"]
+        export_data.append(export_item)
+    
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(export_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"Exported {len(export_data)} poems to {output_path}")
+    return output_path
+
+
+def prepare_data(export_silver=True):
     poems = load_poems()
     poems = label_char_matches(poems)
     poems = label_line_matches(poems)
+    
+    if export_silver:
+        export_silver_standard(poems)
+    
     return poems
 

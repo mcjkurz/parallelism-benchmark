@@ -5,6 +5,7 @@ from torch.optim import AdamW
 from transformers import BertTokenizerFast, BertForSequenceClassification, get_linear_schedule_with_warmup
 from tqdm.auto import tqdm
 import pickle
+import json
 
 from data_loader import prepare_data
 from utils import create_training_datasets, split_raw_data
@@ -90,11 +91,11 @@ def main():
         num_couplets=4,
         num_labels=2
     )
-    poem4_model = train_model(poem4_model, poem4_train_ds, epochs=2)
+    poem4_model = train_model(poem4_model, poem4_train_ds, epochs=1)
 
     print("\nTraining Poem 1-Label Model...")
     poem1_model = BertForSequenceClassification.from_pretrained(pretrained_model_name, num_labels=2)
-    poem1_model = train_model(poem1_model, poem1_train_ds, epochs=2)
+    poem1_model = train_model(poem1_model, poem1_train_ds, epochs=1)
 
     print("\nSaving models and data...")
     char_model.save_pretrained("saved_artifacts/char_model")
@@ -103,6 +104,7 @@ def main():
     poem1_model.save_pretrained("saved_artifacts/poem1_model")
     tokenizer.save_pretrained("saved_artifacts/tokenizer")
 
+    # Save in pickle format (for backwards compatibility)
     with open("saved_artifacts/char_test_raw.pkl", "wb") as f:
         pickle.dump(char_test_raw, f)
     with open("saved_artifacts/coup_test_raw.pkl", "wb") as f:
@@ -112,7 +114,27 @@ def main():
     with open("saved_artifacts/poem1_test_raw.pkl", "wb") as f:
         pickle.dump(poem1_test_raw, f)
 
-    print("Training complete!")
+    # Save in portable JSON format
+    print("\nExporting datasets to JSON format...")
+    
+    def save_json(data, path):
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"  Saved {len(data)} items to {path}")
+
+    # Training splits
+    save_json(char_train_raw, "saved_artifacts/char_train.json")
+    save_json(coup_train_raw, "saved_artifacts/coup_train.json")
+    save_json(poem4_train_raw, "saved_artifacts/poem4_train.json")
+    save_json(poem1_train_raw, "saved_artifacts/poem1_train.json")
+
+    # Test splits
+    save_json(char_test_raw, "saved_artifacts/char_test.json")
+    save_json(coup_test_raw, "saved_artifacts/coup_test.json")
+    save_json(poem4_test_raw, "saved_artifacts/poem4_test.json")
+    save_json(poem1_test_raw, "saved_artifacts/poem1_test.json")
+
+    print("\nTraining complete!")
 
 if __name__ == "__main__":
     main()
