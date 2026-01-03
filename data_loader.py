@@ -94,20 +94,35 @@ def label_char_matches(poems):
 
 def label_line_matches(poems):
     from transformers import pipeline
+    import torch
     
-    print("Labeling line matches...")
+    print("Labeling line matches...", flush=True)
     start_time = time.time()
     
     random.seed(42)
     poems = random.sample(poems, k=min(80000, len(poems)))
+    print(f"  Sampled {len(poems)} poems for labeling", flush=True)
 
+    # Determine device
+    if torch.cuda.is_available():
+        device = 0  # CUDA device index
+        device_name = "CUDA"
+    elif torch.backends.mps.is_available():
+        device = "mps"
+        device_name = "MPS (Apple Silicon)"
+    else:
+        device = -1  # CPU
+        device_name = "CPU"
+    
+    print(f"  Loading SikuBERT model on {device_name}...", flush=True)
+    print(f"  (First run will download the model from HuggingFace)", flush=True)
     classifier = pipeline(
         "text-classification",
         model="qhchina/SikuBERT-parallelism-wuyan-0.1",
         tokenizer="qhchina/SikuBERT-parallelism-wuyan-0.1",
-        device_map="auto",
-        batch_size=128
+        device=device,
     )
+    print(f"  Model loaded successfully!", flush=True)
 
     all_texts = []
     index_map = []
@@ -118,7 +133,15 @@ def label_line_matches(poems):
             all_texts.append(text)
             index_map.append((poem_id, couplet_id))
 
-    results = classifier(all_texts)
+    # Process in batches with progress bar
+    batch_size = 64
+    results = []
+    num_batches = (len(all_texts) + batch_size - 1) // batch_size
+    
+    for i in tqdm(range(0, len(all_texts), batch_size), desc="  Classifying", total=num_batches):
+        batch = all_texts[i:i + batch_size]
+        batch_results = classifier(batch)
+        results.extend(batch_results)
 
     for (poem_id, couplet_id), res in zip(index_map, results):
         poems[poem_id]["line_match"][couplet_id] = 1 if res["label"] == "parallel" else 0
