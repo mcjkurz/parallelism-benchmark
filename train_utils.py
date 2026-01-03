@@ -120,3 +120,4 @@ def free_memory(device=None):
     elif device.type == "mps":
         torch.mps.empty_cache()
 
+
