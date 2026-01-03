@@ -92,7 +92,7 @@ def label_char_matches(poems):
     print(f"Char matching completed in {elapsed_time:.2f} seconds")
     return poems
 
-def label_line_matches(poems):
+def label_line_matches(poems, max_poems=None):
     from transformers import pipeline
     import torch
     import warnings
@@ -103,9 +103,13 @@ def label_line_matches(poems):
     print("Labeling line matches...", flush=True)
     start_time = time.time()
     
-    random.seed(42)
-    poems = random.sample(poems, k=min(80000, len(poems)))
-    print(f"  Sampled {len(poems)} poems for labeling", flush=True)
+    # Sample poems if max_poems is specified
+    if max_poems is not None and len(poems) > max_poems:
+        random.seed(42)
+        poems = random.sample(poems, k=max_poems)
+        print(f"  Sampled {len(poems)} poems for labeling", flush=True)
+    else:
+        print(f"  Labeling all {len(poems)} poems", flush=True)
 
     # Determine device
     if torch.cuda.is_available():
@@ -188,10 +192,10 @@ def export_silver_standard(poems, output_path="data/silver_standard.json"):
     return output_path
 
 
-def prepare_data(export_silver=True):
+def prepare_data(export_silver=True, max_poems=None):
     poems = load_poems()
     poems = label_char_matches(poems)
-    poems = label_line_matches(poems)
+    poems = label_line_matches(poems, max_poems=max_poems)
     
     if export_silver:
         export_silver_standard(poems)

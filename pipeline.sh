@@ -7,13 +7,15 @@
 #   ./pipeline.sh 100          # Prepare data + run 100 trials
 #   ./pipeline.sh --skip-prep  # Skip data preparation, only run trials
 #   ./pipeline.sh 50 --skip-prep  # Run 50 trials without data prep
+#   ./pipeline.sh --max-poems 10000  # Only classify 10k poems (faster)
 #
 
 set -e  # Exit on error
 
 # Configuration
-NUM_TRIALS=${1:-1}
+NUM_TRIALS=1
 SKIP_PREP=false
+MAX_POEMS=""
 
 # Parse arguments
 for arg in "$@"; do
@@ -21,10 +23,19 @@ for arg in "$@"; do
         --skip-prep)
             SKIP_PREP=true
             ;;
+        --max-poems)
+            # Next arg will be the value
+            ;;
         [0-9]*)
-            NUM_TRIALS=$arg
+            # Check if previous arg was --max-poems
+            if [[ "${PREV_ARG}" == "--max-poems" ]]; then
+                MAX_POEMS=$arg
+            else
+                NUM_TRIALS=$arg
+            fi
             ;;
     esac
+    PREV_ARG=$arg
 done
 
 # Colors for output
@@ -47,9 +58,15 @@ fi
 # Step 1: Prepare data (expensive, run once)
 if [ "$SKIP_PREP" = false ]; then
     echo -e "${GREEN}Step 1: Preparing data...${NC}"
-    echo "  This classifies all couplets with SikuBERT (slow, run once)"
+    echo "  This classifies couplets with SikuBERT (slow, run once)"
     echo ""
-    python3 prepare_data.py
+    
+    PREP_CMD="python3 prepare_data.py"
+    if [ -n "$MAX_POEMS" ]; then
+        PREP_CMD="$PREP_CMD --max-poems $MAX_POEMS"
+        echo "  (Limiting to $MAX_POEMS poems)"
+    fi
+    $PREP_CMD
     echo ""
 else
     if [ ! -f "data/silver_standard.json" ]; then
