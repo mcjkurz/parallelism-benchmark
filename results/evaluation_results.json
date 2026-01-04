@@ -1,0 +1,1052 @@
+{
+  "num_trials": 100,
+  "best_trial": 20,
+  "best_seed": 61,
+  "best_score": 0.9078125,
+  "statistics": {
+    "char_acc": {
+      "mean": 0.8475500000000001,
+      "std": 0.17435540570914343,
+      "min": 0.491,
+      "max": 0.963
+    },
+    "coup_acc": {
+      "mean": 0.9522999999999997,
+      "std": 0.015239094461286063,
+      "min": 0.87,
+      "max": 0.974
+    },
+    "poem4_overall_acc": {
+      "mean": 0.7810900000000001,
+      "std": 0.06911388717182676,
+      "min": 0.46475,
+      "max": 0.822
+    },
+    "poem4_inner_acc": {
+      "mean": 0.7428649999999998,
+      "std": 0.12122542751007315,
+      "min": 0.251,
+      "max": 0.8
+    },
+    "poem1_acc": {
+      "mean": 0.85331,
+      "std": 0.10062352557926006,
+      "min": 0.48,
+      "max": 0.932
+    },
+    "char_induced_coup_acc": {
+      "mean": 0.8028099999999999,
+      "std": 0.1549923672314221,
+      "min": 0.485,
+      "max": 0.907
+    },
+    "coup_induced_poem_acc": {
+      "mean": 0.86237,
+      "std": 0.04010602323841147,
+      "min": 0.687,
+      "max": 0.921
+    }
+  },
+  "trials": [
+    {
+      "seed": 42,
+      "char_acc": 0.949,
+      "coup_acc": 0.961,
+      "poem4_overall_acc": 0.79725,
+      "poem4_inner_acc": 0.772,
+      "poem1_acc": 0.792,
+      "char_induced_coup_acc": 0.885,
+      "coup_induced_poem_acc": 0.89
+    },
+    {
+      "seed": 43,
+      "char_acc": 0.963,
+      "coup_acc": 0.907,
+      "poem4_overall_acc": 0.80075,
+      "poem4_inner_acc": 0.7705,
+      "poem1_acc": 0.864,
+      "char_induced_coup_acc": 0.892,
+      "coup_induced_poem_acc": 0.746
+    },
+    {
+      "seed": 44,
+      "char_acc": 0.936,
+      "coup_acc": 0.945,
+      "poem4_overall_acc": 0.814,
+      "poem4_inner_acc": 0.7935,
+      "poem1_acc": 0.914,
+      "char_induced_coup_acc": 0.887,
+      "coup_induced_poem_acc": 0.864
+    },
+    {
+      "seed": 45,
+      "char_acc": 0.499,
+      "coup_acc": 0.957,
+      "poem4_overall_acc": 0.802,
+      "poem4_inner_acc": 0.7955,
+      "poem1_acc": 0.884,
+      "char_induced_coup_acc": 0.5,
+      "coup_induced_poem_acc": 0.881
+    },
+    {
+      "seed": 46,
+      "char_acc": 0.908,
+      "coup_acc": 0.943,
+      "poem4_overall_acc": 0.8005,
+      "poem4_inner_acc": 0.7655,
+      "poem1_acc": 0.865,
+      "char_induced_coup_acc": 0.858,
+      "coup_induced_poem_acc": 0.828
+    },
+    {
+      "seed": 47,
+      "char_acc": 0.923,
+      "coup_acc": 0.938,
+      "poem4_overall_acc": 0.79775,
+      "poem4_inner_acc": 0.753,
+      "poem1_acc": 0.893,
+      "char_induced_coup_acc": 0.883,
+      "coup_induced_poem_acc": 0.782
+    },
+    {
+      "seed": 48,
+      "char_acc": 0.516,
+      "coup_acc": 0.971,
+      "poem4_overall_acc": 0.806,
+      "poem4_inner_acc": 0.7815,
+      "poem1_acc": 0.862,
+      "char_induced_coup_acc": 0.508,
+      "coup_induced_poem_acc": 0.895
+    },
+    {
+      "seed": 49,
+      "char_acc": 0.936,
+      "coup_acc": 0.947,
+      "poem4_overall_acc": 0.8045,
+      "poem4_inner_acc": 0.78,
+      "poem1_acc": 0.893,
+      "char_induced_coup_acc": 0.874,
+      "coup_induced_poem_acc": 0.847
+    },
+    {
+      "seed": 50,
+      "char_acc": 0.952,
+      "coup_acc": 0.952,
+      "poem4_overall_acc": 0.81025,
+      "poem4_inner_acc": 0.782,
+      "poem1_acc": 0.847,
+      "char_induced_coup_acc": 0.875,
+      "coup_induced_poem_acc": 0.818
+    },
+    {
+      "seed": 51,
+      "char_acc": 0.916,
+      "coup_acc": 0.968,
+      "poem4_overall_acc": 0.78625,
+      "poem4_inner_acc": 0.7625,
+      "poem1_acc": 0.883,
+      "char_induced_coup_acc": 0.865,
+      "coup_induced_poem_acc": 0.873
+    },
+    {
+      "seed": 52,
+      "char_acc": 0.951,
+      "coup_acc": 0.967,
+      "poem4_overall_acc": 0.7965,
+      "poem4_inner_acc": 0.7725,
+      "poem1_acc": 0.889,
+      "char_induced_coup_acc": 0.89,
+      "coup_induced_poem_acc": 0.887
+    },
+    {
+      "seed": 53,
+      "char_acc": 0.519,
+      "coup_acc": 0.954,
+      "poem4_overall_acc": 0.79575,
+      "poem4_inner_acc": 0.7605,
+      "poem1_acc": 0.892,
+      "char_induced_coup_acc": 0.497,
+      "coup_induced_poem_acc": 0.845
+    },
+    {
+      "seed": 54,
+      "char_acc": 0.514,
+      "coup_acc": 0.942,
+      "poem4_overall_acc": 0.8025,
+      "poem4_inner_acc": 0.7755,
+      "poem1_acc": 0.901,
+      "char_induced_coup_acc": 0.496,
+      "coup_induced_poem_acc": 0.833
+    },
+    {
+      "seed": 55,
+      "char_acc": 0.963,
+      "coup_acc": 0.954,
+      "poem4_overall_acc": 0.80775,
+      "poem4_inner_acc": 0.7895,
+      "poem1_acc": 0.898,
+      "char_induced_coup_acc": 0.888,
+      "coup_induced_poem_acc": 0.906
+    },
+    {
+      "seed": 56,
+      "char_acc": 0.936,
+      "coup_acc": 0.964,
+      "poem4_overall_acc": 0.807,
+      "poem4_inner_acc": 0.779,
+      "poem1_acc": 0.824,
+      "char_induced_coup_acc": 0.884,
+      "coup_induced_poem_acc": 0.88
+    },
+    {
+      "seed": 57,
+      "char_acc": 0.514,
+      "coup_acc": 0.959,
+      "poem4_overall_acc": 0.811,
+      "poem4_inner_acc": 0.7875,
+      "poem1_acc": 0.881,
+      "char_induced_coup_acc": 0.5,
+      "coup_induced_poem_acc": 0.865
+    },
+    {
+      "seed": 58,
+      "char_acc": 0.943,
+      "coup_acc": 0.952,
+      "poem4_overall_acc": 0.77225,
+      "poem4_inner_acc": 0.772,
+      "poem1_acc": 0.892,
+      "char_induced_coup_acc": 0.88,
+      "coup_induced_poem_acc": 0.84
+    },
+    {
+      "seed": 59,
+      "char_acc": 0.95,
+      "coup_acc": 0.945,
+      "poem4_overall_acc": 0.822,
+      "poem4_inner_acc": 0.7885,
+      "poem1_acc": 0.883,
+      "char_induced_coup_acc": 0.907,
+      "coup_induced_poem_acc": 0.86
+    },
+    {
+      "seed": 60,
+      "char_acc": 0.934,
+      "coup_acc": 0.966,
+      "poem4_overall_acc": 0.80425,
+      "poem4_inner_acc": 0.7695,
+      "poem1_acc": 0.902,
+      "char_induced_coup_acc": 0.871,
+      "coup_induced_poem_acc": 0.893
+    },
+    {
+      "seed": 61,
+      "char_acc": 0.951,
+      "coup_acc": 0.948,
+      "poem4_overall_acc": 0.81425,
+      "poem4_inner_acc": 0.7965,
+      "poem1_acc": 0.918,
+      "char_induced_coup_acc": 0.897,
+      "coup_induced_poem_acc": 0.886
+    },
+    {
+      "seed": 62,
+      "char_acc": 0.941,
+      "coup_acc": 0.936,
+      "poem4_overall_acc": 0.80275,
+      "poem4_inner_acc": 0.788,
+      "poem1_acc": 0.902,
+      "char_induced_coup_acc": 0.9,
+      "coup_induced_poem_acc": 0.839
+    },
+    {
+      "seed": 63,
+      "char_acc": 0.563,
+      "coup_acc": 0.953,
+      "poem4_overall_acc": 0.8075,
+      "poem4_inner_acc": 0.7875,
+      "poem1_acc": 0.855,
+      "char_induced_coup_acc": 0.504,
+      "coup_induced_poem_acc": 0.886
+    },
+    {
+      "seed": 64,
+      "char_acc": 0.925,
+      "coup_acc": 0.954,
+      "poem4_overall_acc": 0.8015,
+      "poem4_inner_acc": 0.784,
+      "poem1_acc": 0.913,
+      "char_induced_coup_acc": 0.884,
+      "coup_induced_poem_acc": 0.85
+    },
+    {
+      "seed": 65,
+      "char_acc": 0.945,
+      "coup_acc": 0.953,
+      "poem4_overall_acc": 0.80225,
+      "poem4_inner_acc": 0.782,
+      "poem1_acc": 0.875,
+      "char_induced_coup_acc": 0.892,
+      "coup_induced_poem_acc": 0.88
+    },
+    {
+      "seed": 66,
+      "char_acc": 0.492,
+      "coup_acc": 0.951,
+      "poem4_overall_acc": 0.79,
+      "poem4_inner_acc": 0.7605,
+      "poem1_acc": 0.844,
+      "char_induced_coup_acc": 0.522,
+      "coup_induced_poem_acc": 0.88
+    },
+    {
+      "seed": 67,
+      "char_acc": 0.524,
+      "coup_acc": 0.96,
+      "poem4_overall_acc": 0.798,
+      "poem4_inner_acc": 0.78,
+      "poem1_acc": 0.516,
+      "char_induced_coup_acc": 0.497,
+      "coup_induced_poem_acc": 0.894
+    },
+    {
+      "seed": 68,
+      "char_acc": 0.949,
+      "coup_acc": 0.964,
+      "poem4_overall_acc": 0.78625,
+      "poem4_inner_acc": 0.756,
+      "poem1_acc": 0.883,
+      "char_induced_coup_acc": 0.877,
+      "coup_induced_poem_acc": 0.894
+    },
+    {
+      "seed": 69,
+      "char_acc": 0.957,
+      "coup_acc": 0.957,
+      "poem4_overall_acc": 0.7995,
+      "poem4_inner_acc": 0.7675,
+      "poem1_acc": 0.869,
+      "char_induced_coup_acc": 0.89,
+      "coup_induced_poem_acc": 0.841
+    },
+    {
+      "seed": 70,
+      "char_acc": 0.928,
+      "coup_acc": 0.955,
+      "poem4_overall_acc": 0.8115,
+      "poem4_inner_acc": 0.7905,
+      "poem1_acc": 0.923,
+      "char_induced_coup_acc": 0.895,
+      "coup_induced_poem_acc": 0.862
+    },
+    {
+      "seed": 71,
+      "char_acc": 0.491,
+      "coup_acc": 0.932,
+      "poem4_overall_acc": 0.79875,
+      "poem4_inner_acc": 0.7735,
+      "poem1_acc": 0.508,
+      "char_induced_coup_acc": 0.496,
+      "coup_induced_poem_acc": 0.809
+    },
+    {
+      "seed": 72,
+      "char_acc": 0.934,
+      "coup_acc": 0.967,
+      "poem4_overall_acc": 0.81025,
+      "poem4_inner_acc": 0.7865,
+      "poem1_acc": 0.913,
+      "char_induced_coup_acc": 0.891,
+      "coup_induced_poem_acc": 0.898
+    },
+    {
+      "seed": 73,
+      "char_acc": 0.929,
+      "coup_acc": 0.964,
+      "poem4_overall_acc": 0.80075,
+      "poem4_inner_acc": 0.7665,
+      "poem1_acc": 0.861,
+      "char_induced_coup_acc": 0.895,
+      "coup_induced_poem_acc": 0.858
+    },
+    {
+      "seed": 74,
+      "char_acc": 0.94,
+      "coup_acc": 0.932,
+      "poem4_overall_acc": 0.79825,
+      "poem4_inner_acc": 0.7735,
+      "poem1_acc": 0.829,
+      "char_induced_coup_acc": 0.871,
+      "coup_induced_poem_acc": 0.789
+    },
+    {
+      "seed": 75,
+      "char_acc": 0.954,
+      "coup_acc": 0.952,
+      "poem4_overall_acc": 0.80475,
+      "poem4_inner_acc": 0.777,
+      "poem1_acc": 0.899,
+      "char_induced_coup_acc": 0.881,
+      "coup_induced_poem_acc": 0.91
+    },
+    {
+      "seed": 76,
+      "char_acc": 0.954,
+      "coup_acc": 0.955,
+      "poem4_overall_acc": 0.7985,
+      "poem4_inner_acc": 0.7645,
+      "poem1_acc": 0.891,
+      "char_induced_coup_acc": 0.872,
+      "coup_induced_poem_acc": 0.899
+    },
+    {
+      "seed": 77,
+      "char_acc": 0.938,
+      "coup_acc": 0.948,
+      "poem4_overall_acc": 0.80875,
+      "poem4_inner_acc": 0.7935,
+      "poem1_acc": 0.906,
+      "char_induced_coup_acc": 0.866,
+      "coup_induced_poem_acc": 0.907
+    },
+    {
+      "seed": 78,
+      "char_acc": 0.953,
+      "coup_acc": 0.959,
+      "poem4_overall_acc": 0.822,
+      "poem4_inner_acc": 0.7975,
+      "poem1_acc": 0.872,
+      "char_induced_coup_acc": 0.895,
+      "coup_induced_poem_acc": 0.865
+    },
+    {
+      "seed": 79,
+      "char_acc": 0.519,
+      "coup_acc": 0.96,
+      "poem4_overall_acc": 0.79225,
+      "poem4_inner_acc": 0.7645,
+      "poem1_acc": 0.911,
+      "char_induced_coup_acc": 0.5,
+      "coup_induced_poem_acc": 0.904
+    },
+    {
+      "seed": 80,
+      "char_acc": 0.931,
+      "coup_acc": 0.964,
+      "poem4_overall_acc": 0.791,
+      "poem4_inner_acc": 0.7685,
+      "poem1_acc": 0.879,
+      "char_induced_coup_acc": 0.864,
+      "coup_induced_poem_acc": 0.897
+    },
+    {
+      "seed": 81,
+      "char_acc": 0.953,
+      "coup_acc": 0.96,
+      "poem4_overall_acc": 0.7865,
+      "poem4_inner_acc": 0.7405,
+      "poem1_acc": 0.895,
+      "char_induced_coup_acc": 0.891,
+      "coup_induced_poem_acc": 0.878
+    },
+    {
+      "seed": 82,
+      "char_acc": 0.952,
+      "coup_acc": 0.97,
+      "poem4_overall_acc": 0.79375,
+      "poem4_inner_acc": 0.768,
+      "poem1_acc": 0.904,
+      "char_induced_coup_acc": 0.902,
+      "coup_induced_poem_acc": 0.909
+    },
+    {
+      "seed": 83,
+      "char_acc": 0.501,
+      "coup_acc": 0.954,
+      "poem4_overall_acc": 0.79925,
+      "poem4_inner_acc": 0.7675,
+      "poem1_acc": 0.864,
+      "char_induced_coup_acc": 0.534,
+      "coup_induced_poem_acc": 0.882
+    },
+    {
+      "seed": 84,
+      "char_acc": 0.917,
+      "coup_acc": 0.955,
+      "poem4_overall_acc": 0.811,
+      "poem4_inner_acc": 0.778,
+      "poem1_acc": 0.898,
+      "char_induced_coup_acc": 0.877,
+      "coup_induced_poem_acc": 0.897
+    },
+    {
+      "seed": 85,
+      "char_acc": 0.954,
+      "coup_acc": 0.954,
+      "poem4_overall_acc": 0.80225,
+      "poem4_inner_acc": 0.769,
+      "poem1_acc": 0.907,
+      "char_induced_coup_acc": 0.873,
+      "coup_induced_poem_acc": 0.868
+    },
+    {
+      "seed": 86,
+      "char_acc": 0.942,
+      "coup_acc": 0.953,
+      "poem4_overall_acc": 0.80875,
+      "poem4_inner_acc": 0.7715,
+      "poem1_acc": 0.899,
+      "char_induced_coup_acc": 0.866,
+      "coup_induced_poem_acc": 0.885
+    },
+    {
+      "seed": 87,
+      "char_acc": 0.527,
+      "coup_acc": 0.951,
+      "poem4_overall_acc": 0.77775,
+      "poem4_inner_acc": 0.7775,
+      "poem1_acc": 0.817,
+      "char_induced_coup_acc": 0.5,
+      "coup_induced_poem_acc": 0.828
+    },
+    {
+      "seed": 88,
+      "char_acc": 0.512,
+      "coup_acc": 0.924,
+      "poem4_overall_acc": 0.80375,
+      "poem4_inner_acc": 0.7765,
+      "poem1_acc": 0.871,
+      "char_induced_coup_acc": 0.485,
+      "coup_induced_poem_acc": 0.801
+    },
+    {
+      "seed": 89,
+      "char_acc": 0.948,
+      "coup_acc": 0.921,
+      "poem4_overall_acc": 0.7895,
+      "poem4_inner_acc": 0.7605,
+      "poem1_acc": 0.889,
+      "char_induced_coup_acc": 0.899,
+      "coup_induced_poem_acc": 0.822
+    },
+    {
+      "seed": 90,
+      "char_acc": 0.501,
+      "coup_acc": 0.947,
+      "poem4_overall_acc": 0.79875,
+      "poem4_inner_acc": 0.7725,
+      "poem1_acc": 0.48,
+      "char_induced_coup_acc": 0.516,
+      "coup_induced_poem_acc": 0.865
+    },
+    {
+      "seed": 91,
+      "char_acc": 0.934,
+      "coup_acc": 0.964,
+      "poem4_overall_acc": 0.79275,
+      "poem4_inner_acc": 0.7605,
+      "poem1_acc": 0.881,
+      "char_induced_coup_acc": 0.878,
+      "coup_induced_poem_acc": 0.855
+    },
+    {
+      "seed": 92,
+      "char_acc": 0.493,
+      "coup_acc": 0.916,
+      "poem4_overall_acc": 0.55075,
+      "poem4_inner_acc": 0.268,
+      "poem1_acc": 0.853,
+      "char_induced_coup_acc": 0.492,
+      "coup_induced_poem_acc": 0.78
+    },
+    {
+      "seed": 93,
+      "char_acc": 0.935,
+      "coup_acc": 0.956,
+      "poem4_overall_acc": 0.798,
+      "poem4_inner_acc": 0.759,
+      "poem1_acc": 0.852,
+      "char_induced_coup_acc": 0.877,
+      "coup_induced_poem_acc": 0.839
+    },
+    {
+      "seed": 94,
+      "char_acc": 0.956,
+      "coup_acc": 0.956,
+      "poem4_overall_acc": 0.80675,
+      "poem4_inner_acc": 0.7865,
+      "poem1_acc": 0.864,
+      "char_induced_coup_acc": 0.907,
+      "coup_induced_poem_acc": 0.867
+    },
+    {
+      "seed": 95,
+      "char_acc": 0.942,
+      "coup_acc": 0.957,
+      "poem4_overall_acc": 0.79675,
+      "poem4_inner_acc": 0.7805,
+      "poem1_acc": 0.916,
+      "char_induced_coup_acc": 0.891,
+      "coup_induced_poem_acc": 0.893
+    },
+    {
+      "seed": 96,
+      "char_acc": 0.917,
+      "coup_acc": 0.943,
+      "poem4_overall_acc": 0.79975,
+      "poem4_inner_acc": 0.7705,
+      "poem1_acc": 0.826,
+      "char_induced_coup_acc": 0.889,
+      "coup_induced_poem_acc": 0.822
+    },
+    {
+      "seed": 97,
+      "char_acc": 0.952,
+      "coup_acc": 0.965,
+      "poem4_overall_acc": 0.46475,
+      "poem4_inner_acc": 0.74,
+      "poem1_acc": 0.91,
+      "char_induced_coup_acc": 0.892,
+      "coup_induced_poem_acc": 0.893
+    },
+    {
+      "seed": 98,
+      "char_acc": 0.949,
+      "coup_acc": 0.971,
+      "poem4_overall_acc": 0.796,
+      "poem4_inner_acc": 0.7605,
+      "poem1_acc": 0.895,
+      "char_induced_coup_acc": 0.87,
+      "coup_induced_poem_acc": 0.88
+    },
+    {
+      "seed": 99,
+      "char_acc": 0.845,
+      "coup_acc": 0.966,
+      "poem4_overall_acc": 0.8035,
+      "poem4_inner_acc": 0.776,
+      "poem1_acc": 0.503,
+      "char_induced_coup_acc": 0.844,
+      "coup_induced_poem_acc": 0.9
+    },
+    {
+      "seed": 100,
+      "char_acc": 0.947,
+      "coup_acc": 0.963,
+      "poem4_overall_acc": 0.805,
+      "poem4_inner_acc": 0.7855,
+      "poem1_acc": 0.904,
+      "char_induced_coup_acc": 0.899,
+      "coup_induced_poem_acc": 0.896
+    },
+    {
+      "seed": 101,
+      "char_acc": 0.5,
+      "coup_acc": 0.964,
+      "poem4_overall_acc": 0.771,
+      "poem4_inner_acc": 0.7285,
+      "poem1_acc": 0.859,
+      "char_induced_coup_acc": 0.503,
+      "coup_induced_poem_acc": 0.843
+    },
+    {
+      "seed": 102,
+      "char_acc": 0.93,
+      "coup_acc": 0.94,
+      "poem4_overall_acc": 0.79675,
+      "poem4_inner_acc": 0.7745,
+      "poem1_acc": 0.902,
+      "char_induced_coup_acc": 0.857,
+      "coup_induced_poem_acc": 0.791
+    },
+    {
+      "seed": 103,
+      "char_acc": 0.902,
+      "coup_acc": 0.953,
+      "poem4_overall_acc": 0.54275,
+      "poem4_inner_acc": 0.2615,
+      "poem1_acc": 0.888,
+      "char_induced_coup_acc": 0.879,
+      "coup_induced_poem_acc": 0.878
+    },
+    {
+      "seed": 104,
+      "char_acc": 0.512,
+      "coup_acc": 0.971,
+      "poem4_overall_acc": 0.7985,
+      "poem4_inner_acc": 0.7835,
+      "poem1_acc": 0.899,
+      "char_induced_coup_acc": 0.501,
+      "coup_induced_poem_acc": 0.919
+    },
+    {
+      "seed": 105,
+      "char_acc": 0.914,
+      "coup_acc": 0.948,
+      "poem4_overall_acc": 0.79375,
+      "poem4_inner_acc": 0.7675,
+      "poem1_acc": 0.872,
+      "char_induced_coup_acc": 0.874,
+      "coup_induced_poem_acc": 0.848
+    },
+    {
+      "seed": 106,
+      "char_acc": 0.936,
+      "coup_acc": 0.968,
+      "poem4_overall_acc": 0.792,
+      "poem4_inner_acc": 0.758,
+      "poem1_acc": 0.859,
+      "char_induced_coup_acc": 0.888,
+      "coup_induced_poem_acc": 0.903
+    },
+    {
+      "seed": 107,
+      "char_acc": 0.909,
+      "coup_acc": 0.956,
+      "poem4_overall_acc": 0.79,
+      "poem4_inner_acc": 0.766,
+      "poem1_acc": 0.917,
+      "char_induced_coup_acc": 0.854,
+      "coup_induced_poem_acc": 0.889
+    },
+    {
+      "seed": 108,
+      "char_acc": 0.949,
+      "coup_acc": 0.951,
+      "poem4_overall_acc": 0.54975,
+      "poem4_inner_acc": 0.2775,
+      "poem1_acc": 0.866,
+      "char_induced_coup_acc": 0.874,
+      "coup_induced_poem_acc": 0.871
+    },
+    {
+      "seed": 109,
+      "char_acc": 0.5,
+      "coup_acc": 0.959,
+      "poem4_overall_acc": 0.777,
+      "poem4_inner_acc": 0.7755,
+      "poem1_acc": 0.834,
+      "char_induced_coup_acc": 0.5,
+      "coup_induced_poem_acc": 0.877
+    },
+    {
+      "seed": 110,
+      "char_acc": 0.949,
+      "coup_acc": 0.931,
+      "poem4_overall_acc": 0.783,
+      "poem4_inner_acc": 0.7685,
+      "poem1_acc": 0.801,
+      "char_induced_coup_acc": 0.907,
+      "coup_induced_poem_acc": 0.851
+    },
+    {
+      "seed": 111,
+      "char_acc": 0.878,
+      "coup_acc": 0.921,
+      "poem4_overall_acc": 0.80125,
+      "poem4_inner_acc": 0.7675,
+      "poem1_acc": 0.827,
+      "char_induced_coup_acc": 0.816,
+      "coup_induced_poem_acc": 0.802
+    },
+    {
+      "seed": 112,
+      "char_acc": 0.941,
+      "coup_acc": 0.946,
+      "poem4_overall_acc": 0.818,
+      "poem4_inner_acc": 0.8,
+      "poem1_acc": 0.913,
+      "char_induced_coup_acc": 0.896,
+      "coup_induced_poem_acc": 0.846
+    },
+    {
+      "seed": 113,
+      "char_acc": 0.953,
+      "coup_acc": 0.959,
+      "poem4_overall_acc": 0.54825,
+      "poem4_inner_acc": 0.2755,
+      "poem1_acc": 0.883,
+      "char_induced_coup_acc": 0.856,
+      "coup_induced_poem_acc": 0.856
+    },
+    {
+      "seed": 114,
+      "char_acc": 0.928,
+      "coup_acc": 0.969,
+      "poem4_overall_acc": 0.80075,
+      "poem4_inner_acc": 0.781,
+      "poem1_acc": 0.893,
+      "char_induced_coup_acc": 0.898,
+      "coup_induced_poem_acc": 0.904
+    },
+    {
+      "seed": 115,
+      "char_acc": 0.946,
+      "coup_acc": 0.951,
+      "poem4_overall_acc": 0.8065,
+      "poem4_inner_acc": 0.7785,
+      "poem1_acc": 0.505,
+      "char_induced_coup_acc": 0.883,
+      "coup_induced_poem_acc": 0.892
+    },
+    {
+      "seed": 116,
+      "char_acc": 0.932,
+      "coup_acc": 0.952,
+      "poem4_overall_acc": 0.79975,
+      "poem4_inner_acc": 0.7775,
+      "poem1_acc": 0.904,
+      "char_induced_coup_acc": 0.891,
+      "coup_induced_poem_acc": 0.824
+    },
+    {
+      "seed": 117,
+      "char_acc": 0.524,
+      "coup_acc": 0.962,
+      "poem4_overall_acc": 0.54075,
+      "poem4_inner_acc": 0.251,
+      "poem1_acc": 0.895,
+      "char_induced_coup_acc": 0.497,
+      "coup_induced_poem_acc": 0.872
+    },
+    {
+      "seed": 118,
+      "char_acc": 0.915,
+      "coup_acc": 0.972,
+      "poem4_overall_acc": 0.80225,
+      "poem4_inner_acc": 0.7815,
+      "poem1_acc": 0.882,
+      "char_induced_coup_acc": 0.858,
+      "coup_induced_poem_acc": 0.892
+    },
+    {
+      "seed": 119,
+      "char_acc": 0.95,
+      "coup_acc": 0.947,
+      "poem4_overall_acc": 0.814,
+      "poem4_inner_acc": 0.779,
+      "poem1_acc": 0.84,
+      "char_induced_coup_acc": 0.882,
+      "coup_induced_poem_acc": 0.897
+    },
+    {
+      "seed": 120,
+      "char_acc": 0.937,
+      "coup_acc": 0.955,
+      "poem4_overall_acc": 0.80975,
+      "poem4_inner_acc": 0.776,
+      "poem1_acc": 0.777,
+      "char_induced_coup_acc": 0.892,
+      "coup_induced_poem_acc": 0.816
+    },
+    {
+      "seed": 121,
+      "char_acc": 0.946,
+      "coup_acc": 0.96,
+      "poem4_overall_acc": 0.8055,
+      "poem4_inner_acc": 0.771,
+      "poem1_acc": 0.526,
+      "char_induced_coup_acc": 0.86,
+      "coup_induced_poem_acc": 0.91
+    },
+    {
+      "seed": 122,
+      "char_acc": 0.937,
+      "coup_acc": 0.955,
+      "poem4_overall_acc": 0.79575,
+      "poem4_inner_acc": 0.767,
+      "poem1_acc": 0.887,
+      "char_induced_coup_acc": 0.891,
+      "coup_induced_poem_acc": 0.881
+    },
+    {
+      "seed": 123,
+      "char_acc": 0.912,
+      "coup_acc": 0.96,
+      "poem4_overall_acc": 0.807,
+      "poem4_inner_acc": 0.7785,
+      "poem1_acc": 0.887,
+      "char_induced_coup_acc": 0.871,
+      "coup_induced_poem_acc": 0.921
+    },
+    {
+      "seed": 124,
+      "char_acc": 0.937,
+      "coup_acc": 0.87,
+      "poem4_overall_acc": 0.80725,
+      "poem4_inner_acc": 0.775,
+      "poem1_acc": 0.834,
+      "char_induced_coup_acc": 0.891,
+      "coup_induced_poem_acc": 0.687
+    },
+    {
+      "seed": 125,
+      "char_acc": 0.932,
+      "coup_acc": 0.961,
+      "poem4_overall_acc": 0.80275,
+      "poem4_inner_acc": 0.7695,
+      "poem1_acc": 0.907,
+      "char_induced_coup_acc": 0.89,
+      "coup_induced_poem_acc": 0.858
+    },
+    {
+      "seed": 126,
+      "char_acc": 0.509,
+      "coup_acc": 0.953,
+      "poem4_overall_acc": 0.7985,
+      "poem4_inner_acc": 0.777,
+      "poem1_acc": 0.901,
+      "char_induced_coup_acc": 0.538,
+      "coup_induced_poem_acc": 0.884
+    },
+    {
+      "seed": 127,
+      "char_acc": 0.931,
+      "coup_acc": 0.974,
+      "poem4_overall_acc": 0.80275,
+      "poem4_inner_acc": 0.7785,
+      "poem1_acc": 0.847,
+      "char_induced_coup_acc": 0.892,
+      "coup_induced_poem_acc": 0.865
+    },
+    {
+      "seed": 128,
+      "char_acc": 0.924,
+      "coup_acc": 0.971,
+      "poem4_overall_acc": 0.818,
+      "poem4_inner_acc": 0.7975,
+      "poem1_acc": 0.899,
+      "char_induced_coup_acc": 0.891,
+      "coup_induced_poem_acc": 0.911
+    },
+    {
+      "seed": 129,
+      "char_acc": 0.941,
+      "coup_acc": 0.969,
+      "poem4_overall_acc": 0.7915,
+      "poem4_inner_acc": 0.7675,
+      "poem1_acc": 0.817,
+      "char_induced_coup_acc": 0.888,
+      "coup_induced_poem_acc": 0.89
+    },
+    {
+      "seed": 130,
+      "char_acc": 0.943,
+      "coup_acc": 0.946,
+      "poem4_overall_acc": 0.795,
+      "poem4_inner_acc": 0.7735,
+      "poem1_acc": 0.9,
+      "char_induced_coup_acc": 0.887,
+      "coup_induced_poem_acc": 0.787
+    },
+    {
+      "seed": 131,
+      "char_acc": 0.927,
+      "coup_acc": 0.958,
+      "poem4_overall_acc": 0.79525,
+      "poem4_inner_acc": 0.7665,
+      "poem1_acc": 0.913,
+      "char_induced_coup_acc": 0.882,
+      "coup_induced_poem_acc": 0.905
+    },
+    {
+      "seed": 132,
+      "char_acc": 0.96,
+      "coup_acc": 0.934,
+      "poem4_overall_acc": 0.8,
+      "poem4_inner_acc": 0.7765,
+      "poem1_acc": 0.488,
+      "char_induced_coup_acc": 0.866,
+      "coup_induced_poem_acc": 0.805
+    },
+    {
+      "seed": 133,
+      "char_acc": 0.935,
+      "coup_acc": 0.954,
+      "poem4_overall_acc": 0.80375,
+      "poem4_inner_acc": 0.775,
+      "poem1_acc": 0.879,
+      "char_induced_coup_acc": 0.905,
+      "coup_induced_poem_acc": 0.826
+    },
+    {
+      "seed": 134,
+      "char_acc": 0.931,
+      "coup_acc": 0.944,
+      "poem4_overall_acc": 0.80425,
+      "poem4_inner_acc": 0.78,
+      "poem1_acc": 0.912,
+      "char_induced_coup_acc": 0.885,
+      "coup_induced_poem_acc": 0.874
+    },
+    {
+      "seed": 135,
+      "char_acc": 0.958,
+      "coup_acc": 0.956,
+      "poem4_overall_acc": 0.76625,
+      "poem4_inner_acc": 0.7095,
+      "poem1_acc": 0.9,
+      "char_induced_coup_acc": 0.886,
+      "coup_induced_poem_acc": 0.837
+    },
+    {
+      "seed": 136,
+      "char_acc": 0.936,
+      "coup_acc": 0.971,
+      "poem4_overall_acc": 0.76975,
+      "poem4_inner_acc": 0.7605,
+      "poem1_acc": 0.833,
+      "char_induced_coup_acc": 0.893,
+      "coup_induced_poem_acc": 0.867
+    },
+    {
+      "seed": 137,
+      "char_acc": 0.951,
+      "coup_acc": 0.936,
+      "poem4_overall_acc": 0.81375,
+      "poem4_inner_acc": 0.788,
+      "poem1_acc": 0.905,
+      "char_induced_coup_acc": 0.899,
+      "coup_induced_poem_acc": 0.823
+    },
+    {
+      "seed": 138,
+      "char_acc": 0.504,
+      "coup_acc": 0.939,
+      "poem4_overall_acc": 0.8075,
+      "poem4_inner_acc": 0.7785,
+      "poem1_acc": 0.932,
+      "char_induced_coup_acc": 0.49,
+      "coup_induced_poem_acc": 0.897
+    },
+    {
+      "seed": 139,
+      "char_acc": 0.939,
+      "coup_acc": 0.951,
+      "poem4_overall_acc": 0.78775,
+      "poem4_inner_acc": 0.752,
+      "poem1_acc": 0.881,
+      "char_induced_coup_acc": 0.889,
+      "coup_induced_poem_acc": 0.841
+    },
+    {
+      "seed": 140,
+      "char_acc": 0.936,
+      "coup_acc": 0.951,
+      "poem4_overall_acc": 0.8015,
+      "poem4_inner_acc": 0.776,
+      "poem1_acc": 0.917,
+      "char_induced_coup_acc": 0.872,
+      "coup_induced_poem_acc": 0.861
+    },
+    {
+      "seed": 141,
+      "char_acc": 0.944,
+      "coup_acc": 0.94,
+      "poem4_overall_acc": 0.53725,
+      "poem4_inner_acc": 0.2635,
+      "poem1_acc": 0.896,
+      "char_induced_coup_acc": 0.898,
+      "coup_induced_poem_acc": 0.895
+    }
+  ]
+}

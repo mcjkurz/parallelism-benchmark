@@ -1,6 +1,71 @@
 import random
 from tqdm.auto import tqdm
 
+
+def deduplicate_characters(data):
+    """Remove duplicate character pairs from data.
+    
+    Args:
+        data: List of dicts with "character_pair" key
+        
+    Returns:
+        Deduplicated list
+    """
+    seen = set()
+    unique = []
+    for item in data:
+        pair = item["character_pair"]
+        # Create a hashable key (order matters for character pairs)
+        key = (pair[0], pair[1])
+        if key not in seen:
+            seen.add(key)
+            unique.append(item)
+    return unique
+
+
+def deduplicate_couplets(data):
+    """Remove duplicate couplets from data.
+    
+    Args:
+        data: List of dicts with "couplet" key
+        
+    Returns:
+        Deduplicated list
+    """
+    seen = set()
+    unique = []
+    for item in data:
+        couplet = item["couplet"]
+        # Create a hashable key
+        key = (couplet[0], couplet[1])
+        if key not in seen:
+            seen.add(key)
+            unique.append(item)
+    return unique
+
+
+def deduplicate_poems(data, key="couplets"):
+    """Remove duplicate poems from data.
+    
+    Args:
+        data: List of dicts with couplets
+        key: The key containing the couplets
+        
+    Returns:
+        Deduplicated list
+    """
+    seen = set()
+    unique = []
+    for item in data:
+        couplets = item[key]
+        # Create a hashable key from all couplet lines
+        poem_key = tuple((c[0], c[1]) for c in couplets)
+        if poem_key not in seen:
+            seen.add(poem_key)
+            unique.append(item)
+    return unique
+
+
 def balance_binary_list(data, key="label"):
     c0 = [x for x in data if x[key] == 0]
     c1 = [x for x in data if x[key] == 1]
@@ -13,6 +78,7 @@ def balance_binary_list(data, key="label"):
     random.shuffle(balanced)
     return balanced
 
+
 def split_raw_data(data, train_ratio=0.9, seed=42):
     if not data:
         return [], []
@@ -23,6 +89,7 @@ def split_raw_data(data, train_ratio=0.9, seed=42):
     train_data = data_copy[:split_idx]
     test_data = data_copy[split_idx:]
     return train_data, test_data
+
 
 def create_training_datasets(poems, max_samples=10000, seed=42):
     random.seed(seed)
@@ -38,22 +105,26 @@ def create_training_datasets(poems, max_samples=10000, seed=42):
 
         for couplet_id, couplet in enumerate(poem["couplets"]):
             char_labels = poem["char_match"][couplet_id]
+            line_label = poem["line_match"][couplet_id]  # SikuBERT label
             s = sum(char_labels)
 
-            if s == 5:
+            # For character training: require both SikuBERT and semantic community to agree
+            # Positive: SikuBERT says parallel AND all 5 characters match semantically
+            if line_label == 1 and s == 5:
                 for i in range(5):
                     training_data_characters.append({
                         "character_pair": (couplet[0][i], couplet[1][i]),
                         "label": 1
                     })
-            elif s == 0:
+            # Negative: SikuBERT says NOT parallel AND no characters match semantically
+            elif line_label == 0 and s == 0:
                 for i in range(5):
                     training_data_characters.append({
                         "character_pair": (couplet[0][i], couplet[1][i]),
                         "label": 0
                     })
 
-            lbl = 1 if poem["line_match"][couplet_id] == 1 else 0
+            lbl = 1 if line_label == 1 else 0
             training_data_couplets.append({
                 "dynasty": poem["dynasty"],
                 "couplet": (couplet[0], couplet[1]),
@@ -74,6 +145,25 @@ def create_training_datasets(poems, max_samples=10000, seed=42):
             "label": 1 if mid_ok else 0
         })
 
+    # Deduplicate all datasets
+    print(f"Before deduplication:")
+    print(f"  Characters: {len(training_data_characters)}")
+    print(f"  Couplets: {len(training_data_couplets)}")
+    print(f"  Poems 4-label: {len(training_data_poems_4labels)}")
+    print(f"  Poems 1-label: {len(training_data_poems_1label)}")
+    
+    training_data_characters = deduplicate_characters(training_data_characters)
+    training_data_couplets = deduplicate_couplets(training_data_couplets)
+    training_data_poems_4labels = deduplicate_poems(training_data_poems_4labels)
+    training_data_poems_1label = deduplicate_poems(training_data_poems_1label)
+    
+    print(f"After deduplication:")
+    print(f"  Characters: {len(training_data_characters)}")
+    print(f"  Couplets: {len(training_data_couplets)}")
+    print(f"  Poems 4-label: {len(training_data_poems_4labels)}")
+    print(f"  Poems 1-label: {len(training_data_poems_1label)}")
+
+    # Balance poems by pattern type
     pattern_poems = []
     other_poems = []
     for item in training_data_poems_4labels:
@@ -90,19 +180,21 @@ def create_training_datasets(poems, max_samples=10000, seed=42):
     training_data_poems_4labels = pattern_poems + other_poems
     random.shuffle(training_data_poems_4labels)
 
+    # Balance binary datasets
     training_data_characters = balance_binary_list(training_data_characters, key="label")
     training_data_couplets = balance_binary_list(training_data_couplets, key="label")
     training_data_poems_1label = balance_binary_list(training_data_poems_1label, key="label")
 
-    print(f"Characters: {len(training_data_characters)}")
-    print(f"Couplets: {len(training_data_couplets)}")
-    print(f"Poems 4-label: {len(training_data_poems_4labels)}")
-    print(f"Poems 1-label: {len(training_data_poems_1label)}")
+    print(f"After balancing:")
+    print(f"  Characters: {len(training_data_characters)}")
+    print(f"  Couplets: {len(training_data_couplets)}")
+    print(f"  Poems 4-label: {len(training_data_poems_4labels)}")
+    print(f"  Poems 1-label: {len(training_data_poems_1label)}")
 
+    # Sample to max_samples
     training_data_characters = random.sample(training_data_characters, k=min(max_samples, len(training_data_characters)))
     training_data_couplets = random.sample(training_data_couplets, k=min(max_samples, len(training_data_couplets)))
     training_data_poems_1label = random.sample(training_data_poems_1label, k=min(max_samples, len(training_data_poems_1label)))
     training_data_poems_4labels = random.sample(training_data_poems_4labels, k=min(max_samples, len(training_data_poems_4labels)))
 
     return training_data_characters, training_data_couplets, training_data_poems_4labels, training_data_poems_1label
-
