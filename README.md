@@ -108,12 +108,12 @@ parallelism-benchmark/
 |-----------|---------|-------------|
 | `--trials` | 1 | Number of training/evaluation trials to run |
 | `--training-samples` | 10,000 | Target training samples per task (char, couplet, poem4, poem1) |
-| `--max-poems` | all (~90k) | Maximum poems to classify with SikuBERT during data prep |
+| `--max-poems` | all | Maximum poems to classify with SikuBERT during data prep |
 | Epochs | 1 | Training epochs for each model (configurable in `train_utils.py`) |
 | Batch size | 8 | Training batch size |
 | Learning rate | 2e-5 | AdamW optimizer learning rate |
 | Warmup | 10% | Linear warmup during first 10% of training steps |
-| Test split | 20% | Portion of data held out for evaluation |
+| Test split | 10% | Portion of data held out for evaluation (train_ratio=0.9) |
 | Random seed | 42 | Base seed (increments by 1 for each trial) |
 
 ### Configuration
