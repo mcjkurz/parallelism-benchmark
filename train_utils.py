@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
-from transformers import BertTokenizerFast, BertForSequenceClassification, get_linear_schedule_with_warmup
+from transformers import BertTokenizerFast, BertForSequenceClassification, get_constant_schedule_with_warmup
 from tqdm.auto import tqdm
 
 from datasets import CharPairDataset, CoupletDataset, PoemDataset4Labels, PoemDataset1Label
@@ -46,8 +46,9 @@ def train_model(model, dataset, epochs=1, batch_size=8, lr=2e-5, device=None, ve
 
     optimizer = AdamW(model.parameters(), lr=lr)
     total_steps = len(train_loader) * epochs
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer, num_warmup_steps=int(0.05 * total_steps), num_training_steps=total_steps
+    # Warmup from 0 to target LR during first 10% of steps, then constant LR
+    scheduler = get_constant_schedule_with_warmup(
+        optimizer, num_warmup_steps=int(0.10 * total_steps)
     )
 
     for epoch in range(epochs):
@@ -119,5 +120,6 @@ def free_memory(device=None):
         torch.cuda.empty_cache()
     elif device.type == "mps":
         torch.mps.empty_cache()
+
 
 

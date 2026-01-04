@@ -1,3 +1,4 @@
+import json
 import torch
 from transformers import BertTokenizerFast, BertForSequenceClassification
 from tqdm.auto import tqdm
@@ -124,101 +125,94 @@ def generate_comparison_data(data, poem4_model, poem1_model, coup_model, char_mo
 
     return pd.DataFrame(results)
 
-def format_example(row, count):
+def row_to_example(row):
+    """Convert a DataFrame row to a simple example dict."""
     lines = row['full_text']
-    c_idx = row['couplet_idx']
-    dynasty = row['dynasty']
+    return {
+        "poem": [f"{lines[k]}，{lines[k+1]}" for k in range(0, 8, 2)],
+        "couplet_idx": int(row['couplet_idx']),
+        "target": f"{row['l1']}，{row['l2']}",
+        "truth": int(row['truth']),
+        "predictions": {
+            "char": int(row['pred_char']),
+            "couplet": int(row['pred_coup']),
+            "poem4": int(row['pred_poem4']),
+            "poem1": int(row['pred_poem1_implicit']) if row['couplet_idx'] in [1, 2] else None
+        }
+    }
 
-    parts = []
-    parts.append(f"\n--- Example {count} ---")
-    parts.append(f"\nDynasty: {dynasty}")
-    parts.append("Poem Context:")
-    for k in range(0, 8, 2):
-        marker = "→ " if k//2 == c_idx else "  "
-        parts.append(f"{marker}{lines[k]}，{lines[k+1]}")
 
-    parts.append(f"\nTarget: {row['l1']}，{row['l2']}")
-    parts.append(f"Ground Truth: {row['truth']}")
+def pairwise_comparison(df, model_a, model_b, col_a, col_b, inner_only=False):
+    """Compare two models and return counts + examples."""
+    if inner_only:
+        df = df[df['couplet_idx'].isin([1, 2])]
+    
+    total = len(df)
+    
+    a_correct = df[col_a] == df['truth']
+    b_correct = df[col_b] == df['truth']
+    
+    both_correct = df[a_correct & b_correct]
+    both_wrong = df[~a_correct & ~b_correct]
+    a_only = df[a_correct & ~b_correct]
+    b_only = df[~a_correct & b_correct]
+    
+    return {
+        "total": total,
+        "both_correct": len(both_correct),
+        "both_wrong": len(both_wrong),
+        f"{model_a}_only_correct": len(a_only),
+        f"{model_b}_only_correct": len(b_only),
+        "examples": {
+            f"{model_a}_only_correct": [row_to_example(row) for _, row in a_only.iterrows()],
+            f"{model_b}_only_correct": [row_to_example(row) for _, row in b_only.iterrows()]
+        }
+    }
 
-    c_status = "✅" if row['pred_char'] == row['truth'] else "❌"
-    parts.append(f"Char Model:    {row['pred_char']} {c_status} | Prediction: {row['pred_char_details']} (Consensus: {row['pred_char']})")
 
-    cp_status = "✅" if row['pred_coup'] == row['truth'] else "❌"
-    parts.append(f"Couplet Model: {row['pred_coup']} {cp_status} | (Correct Level)")
-
-    p4_status = "✅" if row['pred_poem4'] == row['truth'] else "❌"
-    parts.append(f"Poem4 Model:   {row['pred_poem4']} {p4_status} | Prediction: {row['pred_poem4_full']} | Truth: {row['truth_full']}")
-
-    if row['couplet_idx'] in [1, 2]:
-        p1_global = row['pred_poem1_global']
-        p1_desc = "Regulated" if p1_global == 1 else "Not Regulated"
-        implicit = row['pred_poem1_implicit']
-        p1_status = "✅" if implicit == row['truth'] else "❌"
-        parts.append(f"Poem1 Model:   {implicit} {p1_status} | Implies this couplet is {p1_desc}")
-    else:
-        parts.append("Poem1 Model:   N/A (Outer couplets don't determine regulation)")
-
-    return "\n".join(parts)
-
-def run_scenarios(df):
-    def process_subset(subset, name, filename):
-        print("\n" + "="*80)
-        print(f"{name}")
-        print("="*80)
-
-        if subset.empty:
-            print("No examples found.")
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write(f"{name}\n\nNo examples found.\n")
-            return
-
-        count_printed = 0
-        for _, row in subset.iterrows():
-            count_printed += 1
-            print(format_example(row, count_printed))
-            if count_printed >= 10:
-                break
-
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(f"{name}\n")
-            f.write("="*80 + "\n")
-            for idx, row in subset.iterrows():
-                ex_index = idx + 1
-                text = format_example(row, ex_index)
-                f.write(text)
-                f.write("\n")
-
-    df_char_fail = df[
-        (df['pred_char'] != df['truth']) &
-        (df['pred_coup'] == df['truth'])
-    ]
-    process_subset(
-        df_char_fail,
-        "SCENARIO A: Char Model Wrong, Couplet Model Right (Low-level Noise)",
-        "scenario_A.txt"
-    )
-
-    df_poem4_fail = df[
-        (df['pred_poem4'] != df['truth']) &
-        (df['pred_coup'] == df['truth'])
-    ]
-    process_subset(
-        df_poem4_fail,
-        "SCENARIO B: Poem4 Model Wrong, Couplet Model Right (Contextual Hallucination)",
-        "scenario_B.txt"
-    )
-
-    df_poem1_fail = df[
-        (df['couplet_idx'].isin([1, 2])) &
-        (df['truth'] == 0) &
-        (df['pred_coup'] == 0) &
-        (df['pred_poem1_global'] == 1)
-    ]
-    process_subset(
-        df_poem1_fail,
-        "SCENARIO C: Poem1 (Global) Hallucination",
-        "scenario_C.txt"
-    )
+def analyze_models(df):
+    """Analyze all models with pairwise comparisons."""
+    total = len(df)
+    inner_only = df[df['couplet_idx'].isin([1, 2])]
+    
+    # Accuracy for each model
+    accuracy = {
+        "char": float((df['pred_char'] == df['truth']).mean()),
+        "couplet": float((df['pred_coup'] == df['truth']).mean()),
+        "poem4": float((df['pred_poem4'] == df['truth']).mean()),
+        "poem1": float((inner_only['pred_poem1_implicit'] == inner_only['truth']).mean())
+    }
+    
+    # All 6 pairwise comparisons
+    pairwise = {
+        "char_vs_couplet": pairwise_comparison(
+            df, "char", "couplet", "pred_char", "pred_coup"
+        ),
+        "char_vs_poem4": pairwise_comparison(
+            df, "char", "poem4", "pred_char", "pred_poem4"
+        ),
+        "char_vs_poem1": pairwise_comparison(
+            df, "char", "poem1", "pred_char", "pred_poem1_implicit", inner_only=True
+        ),
+        "couplet_vs_poem4": pairwise_comparison(
+            df, "couplet", "poem4", "pred_coup", "pred_poem4"
+        ),
+        "couplet_vs_poem1": pairwise_comparison(
+            df, "couplet", "poem1", "pred_coup", "pred_poem1_implicit", inner_only=True
+        ),
+        "poem4_vs_poem1": pairwise_comparison(
+            df, "poem4", "poem1", "pred_poem4", "pred_poem1_implicit", inner_only=True
+        ),
+    }
+    
+    return {
+        "summary": {
+            "total_couplets": total,
+            "inner_couplets": len(inner_only),
+            "accuracy": accuracy
+        },
+        "pairwise": pairwise
+    }
 
 def main():
     print("Loading models and data...")
@@ -241,7 +235,52 @@ def main():
         tokenizer
     )
 
-    run_scenarios(df_results)
+    results = analyze_models(df_results)
+    
+    # Print summary
+    print()
+    print("=" * 60)
+    print("MODEL COMPARISON ANALYSIS")
+    print("=" * 60)
+    
+    summary = results['summary']
+    print(f"\nTotal couplets: {summary['total_couplets']}")
+    print(f"Inner couplets (for poem1): {summary['inner_couplets']}")
+    
+    print("\nAccuracy:")
+    for model, acc in summary['accuracy'].items():
+        print(f"  {model}: {acc:.4f}")
+    
+    print("\nPairwise Comparisons:")
+    for pair_name, data in results['pairwise'].items():
+        print(f"\n  {pair_name} (n={data['total']}):")
+        print(f"    Both correct: {data['both_correct']}")
+        print(f"    Both wrong: {data['both_wrong']}")
+        # Get the two "only correct" keys
+        only_keys = [k for k in data.keys() if k.endswith('_only_correct') and k != 'examples']
+        for key in only_keys:
+            print(f"    {key}: {data[key]}")
+    
+    # Create summary version (without examples)
+    summary_results = {
+        "summary": results['summary'],
+        "pairwise": {}
+    }
+    for pair_name, data in results['pairwise'].items():
+        summary_results['pairwise'][pair_name] = {
+            k: v for k, v in data.items() if k != 'examples'
+        }
+    
+    # Save summary JSON
+    with open("model_comparison_summary.json", "w", encoding="utf-8") as f:
+        json.dump(summary_results, f, ensure_ascii=False, indent=2)
+    print(f"\nSummary saved to model_comparison_summary.json")
+    
+    # Save full results with all examples
+    with open("model_comparison_full.json", "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    print(f"Full results (with all examples) saved to model_comparison_full.json")
+
 
 if __name__ == "__main__":
     main()

@@ -62,21 +62,18 @@ python run_trials.py --training-samples 5000  # Use 5000 training samples per ta
 python run_trials.py --output results.json  # Custom output file
 ```
 
-Each trial:
-- Samples training data from the silver standard
-- Trains 4 models (char, couplet, poem-4label, poem-1label)
-- Evaluates on held-out test set
+Each trial trains and evaluates 4 models (char, couplet, poem4, poem1).
+The best performing models are saved to `saved_artifacts/`.
 
-### 3. Analyze Scenarios
+### 3. Analyze Models
 
 ```bash
 python analyze_scenarios.py
 ```
 
-Analyzes specific failure scenarios and saves results to text files:
-- `scenario_A.txt`: Char model fails, couplet model succeeds
-- `scenario_B.txt`: Poem4 model fails, couplet model succeeds
-- `scenario_C.txt`: Poem1 global hallucination
+Runs pairwise comparisons between all 4 models and outputs:
+- `model_comparison_summary.json`: Accuracy stats and disagreement counts
+- `model_comparison_full.json`: Full results with all examples
 
 ### 4. Test Single Examples
 
@@ -97,7 +94,7 @@ parallelism-benchmark/
 ├── datasets.py           # PyTorch dataset classes
 ├── models.py             # Custom model definitions
 ├── utils.py              # Data splitting helpers
-├── analyze_scenarios.py  # Scenario analysis
+├── analyze_scenarios.py  # Pairwise model comparison
 ├── test_single.py        # Single example testing
 ├── data/
 │   ├── poems/            # Raw poem CSV files by dynasty
@@ -121,10 +118,11 @@ Edit `run_trials.py --training-samples` to change target training samples per ta
 
 ## Output Files
 
-After running the pipeline:
-
 | File | Description |
 |------|-------------|
 | `data/silver_standard.json` | Silver Standard dataset with parallelism labels |
-| `evaluation_results.json` | Statistical results (mean ± std from N trials) |
+| `evaluation_results.json` | Trial statistics (mean ± std) |
+| `saved_artifacts/` | Best performing models (4 models + tokenizer + test data) |
+| `model_comparison_summary.json` | Pairwise model comparison stats |
+| `model_comparison_full.json` | Full comparison with all examples |
 

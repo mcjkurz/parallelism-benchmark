@@ -14,6 +14,8 @@ Usage:
 
 import argparse
 import json
+import os
+import pickle
 import random
 import numpy as np
 import torch
@@ -147,48 +149,6 @@ def evaluate_poem4_inner_accuracy(model, dataset, device):
     return correct / total if total > 0 else 0.0
 
 
-def evaluate_poem1_inner_accuracy(poem1_model, raw_poem_data, tokenizer, device):
-    """Evaluate Poem1 model accuracy on inner couplet prediction."""
-    poem1_model.eval()
-    correct = 0
-    total = 0
-
-    with torch.no_grad():
-        for item in raw_poem_data:
-            couplets = item["couplets"]
-
-            if "line_match" in item:
-                labels = item["line_match"]
-                cp2_label = labels[1]
-                cp3_label = labels[2]
-                true_inner_parallel = 1 if (cp2_label == 1 and cp3_label == 1) else 0
-            else:
-                true_inner_parallel = item["label"]
-
-            text = ""
-            for l1, l2 in couplets:
-                text += l1 + "，" + l2 + "。"
-
-            encoded = tokenizer(
-                text,
-                truncation=True,
-                padding=True,
-                max_length=256,
-                return_tensors="pt",
-            ).to(device)
-
-            logits = poem1_model(**encoded).logits
-            model_pred = logits.argmax(dim=-1).item()
-
-            pred_inner_parallel = 1 if model_pred == 1 else 0
-
-            if pred_inner_parallel == true_inner_parallel:
-                correct += 1
-            total += 1
-
-    return correct / total if total > 0 else 0.0
-
-
 # =============================================================================
 # Trial Execution
 # =============================================================================
@@ -211,7 +171,19 @@ def load_silver_standard(path="data/silver_standard.json"):
 
 
 def run_single_trial(poems, seed, tokenizer, device, training_samples=10000, verbose=True):
-    """Run a single training and evaluation trial with the given seed."""
+    """Run a single training and evaluation trial with the given seed.
+    
+    Args:
+        poems: List of poem data
+        seed: Random seed for reproducibility
+        tokenizer: The tokenizer to use
+        device: Device to train on
+        training_samples: Target number of training samples
+        verbose: Whether to show progress bars
+    
+    Returns:
+        Tuple of (results_dict, models_dict, test_data_dict)
+    """
     set_seed(seed)
     
     # Create and split datasets with this seed
@@ -248,16 +220,21 @@ def run_single_trial(poems, seed, tokenizer, device, training_samples=10000, ver
         "poem4_overall_acc": evaluate_standard(poem4_model, poem4_test_ds, device),
         "poem4_inner_acc": evaluate_poem4_inner_accuracy(poem4_model, poem4_test_ds, device),
         "poem1_acc": evaluate_standard(poem1_model, poem1_test_ds, device),
-        "poem1_inner_acc": evaluate_poem1_inner_accuracy(poem1_model, poem1_test_raw, tokenizer, device),
         "char_induced_coup_acc": evaluate_char_induced_couplet_accuracy(char_model, coup_test_raw, tokenizer, device),
         "coup_induced_poem_acc": evaluate_couplet_induced_poem_accuracy(coup_model, poem1_test_raw, tokenizer, device),
     }
     
-    # Clean up models (don't save them)
-    del char_model, coup_model, poem4_model, poem1_model
-    free_memory(device)
+    models = {
+        "char_model": char_model,
+        "coup_model": coup_model,
+        "poem4_model": poem4_model,
+        "poem1_model": poem1_model,
+    }
+    test_data = {
+        "poem4_test_raw": poem4_test_raw,
+    }
     
-    return results
+    return results, models, test_data
 
 
 def compute_statistics(all_results):
@@ -279,6 +256,44 @@ def compute_statistics(all_results):
     return statistics
 
 
+def compute_aggregate_score(results):
+    """Compute an aggregate score for a trial to determine the best one.
+    
+    Uses the average of the four primary model accuracies.
+    """
+    return (
+        results["char_acc"] +
+        results["coup_acc"] +
+        results["poem4_overall_acc"] +
+        results["poem1_acc"]
+    ) / 4
+
+
+def save_best_models(models, test_data, tokenizer, output_dir="saved_artifacts"):
+    """Save the best performing models and associated data.
+    
+    Args:
+        models: Dict with char_model, coup_model, poem4_model, poem1_model
+        test_data: Dict with poem4_test_raw
+        tokenizer: The tokenizer to save
+        output_dir: Directory to save artifacts to
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Save tokenizer
+    tokenizer.save_pretrained(os.path.join(output_dir, "tokenizer"))
+    
+    # Save models
+    models["char_model"].save_pretrained(os.path.join(output_dir, "char_model"))
+    models["coup_model"].save_pretrained(os.path.join(output_dir, "coup_model"))
+    models["poem4_model"].save_pretrained(os.path.join(output_dir, "poem4_model"))
+    models["poem1_model"].save_pretrained(os.path.join(output_dir, "poem1_model"))
+    
+    # Save test data for analysis
+    with open(os.path.join(output_dir, "poem4_test_raw.pkl"), "wb") as f:
+        pickle.dump(test_data["poem4_test_raw"], f)
+
+
 def run_trials(num_trials, output_file, silver_path="data/silver_standard.json", training_samples=10000):
     """Run training and evaluation trials."""
     device = get_device()
@@ -297,21 +312,41 @@ def run_trials(num_trials, output_file, silver_path="data/silver_standard.json",
     # Initialize tokenizer
     tokenizer = create_tokenizer()
     
-    # Run trials
+    # Run trials and track best
     all_results = []
+    best_score = -1
+    best_trial_idx = 0
+    best_seed = 42
+    
     for trial in range(num_trials):
         seed = 42 + trial
         print(f"\n--- Trial {trial + 1}/{num_trials} (seed={seed}) ---")
         
         verbose = (num_trials == 1)  # Only show progress bars for single trial
-        trial_results = run_single_trial(poems, seed, tokenizer, device, training_samples=training_samples, verbose=verbose)
+        trial_results, models, test_data = run_single_trial(
+            poems, seed, tokenizer, device, training_samples=training_samples, verbose=verbose
+        )
         all_results.append(trial_results)
+        
+        # Check if this is the best trial so far
+        score = compute_aggregate_score(trial_results)
+        if score > best_score:
+            best_score = score
+            best_trial_idx = trial
+            best_seed = seed
+            # Save models (overwrites previous best)
+            save_best_models(models, test_data, tokenizer)
         
         # Print summary for this trial
         print(f"  Char: {trial_results['char_acc']:.4f}  "
               f"Couplet: {trial_results['coup_acc']:.4f}  "
               f"Poem4: {trial_results['poem4_overall_acc']:.4f}  "
-              f"Poem1: {trial_results['poem1_acc']:.4f}")
+              f"Poem1: {trial_results['poem1_acc']:.4f}"
+              + (f"  [NEW BEST: {score:.4f}]" if score == best_score else ""))
+        
+        # Clean up models after each trial
+        del models
+        free_memory(device)
     
     # Compute and display statistics
     print()
@@ -332,6 +367,9 @@ def run_trials(num_trials, output_file, silver_path="data/silver_standard.json",
         # Save results
         output_data = {
             "num_trials": num_trials,
+            "best_trial": best_trial_idx + 1,
+            "best_seed": best_seed,
+            "best_score": best_score,
             "statistics": statistics,
             "trials": all_results,
         }
@@ -350,6 +388,10 @@ def run_trials(num_trials, output_file, silver_path="data/silver_standard.json",
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=2)
     print(f"Results saved to {output_file}")
+    
+    print()
+    print(f"Best models (Trial {best_trial_idx + 1}, seed={best_seed}, score={best_score:.4f}) saved to saved_artifacts/")
+    print("You can now run analyze_scenarios.py to analyze model predictions.")
 
 
 def main():

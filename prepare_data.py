@@ -22,9 +22,13 @@ from tqdm.auto import tqdm
 random.seed(42)
 
 
+def is_chinese_char(char):
+    """Check if a character is a CJK unified ideograph."""
+    return '\u4e00' <= char <= '\u9fff'
+
+
 def load_poems():
     """Load poems from CSV files, filtering for 五言律诗 (pentasyllabic regulated verse)."""
-    chinese_only = re.compile(r'^[\u4e00-\u9fff]+$')
     poems = []
     accepted_poem_types = ["五言律诗"]
     cached_file = "data/poems/penta_regulated.csv"
@@ -33,6 +37,7 @@ def load_poems():
     if os.path.exists(cached_file):
         print(f"Loading from cached file: {cached_file}")
         files = [cached_file]
+        use_cache = True
     else:
         print(f"Cached file not found. Processing individual files...")
         files = ["data/poems/" + file for file in [
@@ -40,21 +45,31 @@ def load_poems():
             "明_1.csv", "明_2.csv", "明_3.csv", "明_4.csv",
             "清_1.csv", "清_2.csv", "清_3.csv"
         ]]
+        use_cache = False
 
     full_str_set = set()
-    cache_lines = []  # Store lines for caching
+    cache_lines = []  # Store lines for caching (with dynasty prefix)
     
     for file in tqdm(files, desc="Loading poems"):
         with open(file, "r") as f:
             lines = [line.strip() for line in f.read().split("\n") if len(line.strip()) > 0]
-            dynasty = file.split("/")[2][0]
+            # Extract dynasty from filename (e.g., "唐.csv" -> "唐")
+            # For cached file, dynasty is stored as first field in each line
+            if not use_cache:
+                dynasty = file.split("/")[2][0]
             for line in lines:
                 line_split = line.split(",")
-                if not any(line_split.count(poem_type) for poem_type in accepted_poem_types):
+                
+                # For cached file, first field is dynasty
+                if use_cache:
+                    dynasty = line_split[0]
+                    line_split = line_split[1:]  # Remove dynasty from processing
+                
+                if not any(poem_type in line_split for poem_type in accepted_poem_types):
                     continue
                 poem = line_split[-1].strip()
                 all_lines = [line.strip() for line in re.split(r"[。？，；！]", poem) 
-                           if len(line) >= 1 and all(chinese_only.match(char) for char in line)]
+                           if len(line) >= 1 and all(is_chinese_char(char) for char in line)]
                 if all(len(line) == 5 for line in all_lines) and len(all_lines) == 8:
                     couplets = [(all_lines[n], all_lines[n+1]) for n in range(0, len(all_lines), 2)]
                     full_str = "".join(all_lines)
@@ -63,16 +78,16 @@ def load_poems():
                         poem_data = {
                             "dynasty": dynasty,
                             "couplets": couplets,
-                            "char_match": [[0,0,0,0,0] for i in range(len(couplets))],
-                            "line_match": [0, 0, 0, 0]
+                            "char_match": [[0,0,0,0,0] for _ in range(len(couplets))],
+                            "line_match": [0 for _ in range(len(couplets))]
                         }
                         poems.append(poem_data)
-                        # Store original line for caching
-                        if file != cached_file:
-                            cache_lines.append(line)
+                        # Store dynasty + original line for caching
+                        if not use_cache:
+                            cache_lines.append(f"{dynasty},{line}")
     
     # Save to cached file if we processed individual files
-    if not os.path.exists(cached_file) and cache_lines:
+    if not use_cache and cache_lines:
         print(f"Saving {len(cache_lines)} poems to {cached_file}")
         with open(cached_file, "w") as f:
             f.write("\n".join(cache_lines))
@@ -87,6 +102,8 @@ def label_char_matches(poems):
     
     with open("data/char_communities.json", "r", encoding='utf-8') as json_file:
         communities = json.load(json_file)
+        # Merge community 5 into community 8: both represent nouns,
+        # so we combine them for consistent semantic matching
         for key in communities.keys():
             if communities[key] == 5:
                 communities[key] = 8
@@ -98,7 +115,7 @@ def label_char_matches(poems):
                 char1 = couplet[0][i]
                 char2 = couplet[1][i]
                 if char1 in communities and char2 in communities:
-                    if communities[couplet[0][i]] == communities[couplet[1][i]]:
+                    if communities[char1] == communities[char2]:
                         poems[poem_id]["char_match"][couplet_id][i] = 1
                 else:
                     wrong_poem_ids.add(poem_id)
