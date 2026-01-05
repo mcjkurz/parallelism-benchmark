@@ -376,7 +376,7 @@ def run_single_trial(poems, seed, tokenizer, device, training_samples=10000, ver
         Tuple of (results_dict, models_dict, test_data_dict)
         
     Raises:
-        TrainingFailedError: If training fails to converge
+        TrainingFailedError: If any model accuracy is below MIN_ACCURACY_THRESHOLD
     """
     set_seed(seed)
     
@@ -400,10 +400,10 @@ def run_single_trial(poems, seed, tokenizer, device, training_samples=10000, ver
     poem4_test_ds = PoemDataset4Labels(poem4_test_raw, tokenizer)
     poem1_test_ds = PoemDataset1Label(poem1_test_raw, tokenizer)
     
-    # Train all models (may raise TrainingFailedError)
+    # Train all models
     char_model, coup_model, poem4_model, poem1_model = train_all_models(
         char_train_ds, coup_train_ds, poem4_train_ds, poem1_train_ds,
-        tokenizer, device=device, verbose=verbose, check_convergence=True
+        tokenizer, device=device, verbose=verbose
     )
     
     # Evaluate all models with full metrics
@@ -412,6 +412,20 @@ def run_single_trial(poems, seed, tokenizer, device, training_samples=10000, ver
     poem4_metrics = evaluate_with_metrics(poem4_model, poem4_test_ds, device)
     poem4_inner_metrics = evaluate_poem4_inner(poem4_model, poem4_test_ds, device)
     poem1_metrics = evaluate_with_metrics(poem1_model, poem1_test_ds, device)
+    
+    # Check if any accuracy is below threshold - if so, training failed
+    from train_utils import MIN_ACCURACY_THRESHOLD
+    accuracies = {
+        "char": char_metrics["accuracy"],
+        "couplet": coup_metrics["accuracy"],
+        "poem4": poem4_metrics["accuracy"],
+        "poem1": poem1_metrics["accuracy"],
+    }
+    for name, acc in accuracies.items():
+        if acc < MIN_ACCURACY_THRESHOLD:
+            raise TrainingFailedError(
+                f"{name} accuracy {acc:.3f} < {MIN_ACCURACY_THRESHOLD}"
+            )
     
     char_induced_coup_metrics = evaluate_char_induced_couplet(char_model, coup_test_raw, tokenizer, device)
     coup_induced_poem_metrics = evaluate_couplet_induced_poem(coup_model, poem1_test_raw, tokenizer, device)
