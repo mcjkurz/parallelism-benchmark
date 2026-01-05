@@ -1,5 +1,6 @@
 # Saved models and artifacts
 saved_artifacts/
+results/
 
 # Python
 __pycache__/
@@ -57,4 +58,3 @@ Thumbs.db
 *.tmp
 *.bak
 scenario_*.txt
-
