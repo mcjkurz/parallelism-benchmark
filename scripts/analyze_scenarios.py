@@ -12,13 +12,16 @@ Usage:
 
 import argparse
 import json
+import logging
 import os
 import sys
 import torch
-from transformers import BertTokenizerFast, BertForSequenceClassification
 from tqdm.auto import tqdm
-import pickle
 import numpy as np
+
+# Suppress transformers warnings before importing
+logging.getLogger('transformers').setLevel(logging.ERROR)
+from transformers import BertTokenizerFast, BertForSequenceClassification
 
 # Add parent directory to path for imports
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -33,14 +36,14 @@ device = get_device()
 print(f"Using device: {device}")
 
 
-def generate_comparison_data(data, poem4_model, poem1_model, coup_model, char_model, tokenizer):
+def generate_comparison_data(data, poem4_model, poem1_model, couplet_model, char_model, tokenizer):
     """Generate comparison data from saved models."""
     print("Generating comparison data...")
     results = []
 
     poem4_model.eval()
     poem1_model.eval()
-    coup_model.eval()
+    couplet_model.eval()
     char_model.eval()
 
     for idx, item in enumerate(tqdm(data)):
@@ -59,7 +62,7 @@ def generate_comparison_data(data, poem4_model, poem1_model, coup_model, char_mo
             l1, l2 = couplets[i]
             truth = labels[i]
 
-            coup_pred = predict_couplet_level(l1, l2, coup_model, tokenizer, device)
+            coup_pred = predict_couplet_level(l1, l2, couplet_model, tokenizer, device)
             char_cons, char_dets = predict_char_level(l1, l2, char_model, tokenizer, device)
 
             poem1_implicit = -1
@@ -254,20 +257,19 @@ def aggregate_comparisons(comparisons_dir):
     }
 
 
-def check_artifacts_exist(artifacts_dir):
+def check_artifacts_exist(models_dir):
     """Check if saved model artifacts exist."""
     required = {
         "tokenizer": "tokenizer",
         "char_model": "character model",
-        "coup_model": "couplet model", 
+        "couplet_model": "couplet model", 
         "poem4_model": "poem-4 model",
         "poem1_model": "poem-1 model",
-        "poem4_test_raw.pkl": "test data"
     }
     missing = []
     
-    if not os.path.exists(artifacts_dir):
-        print(f"Error: Artifacts directory not found: {artifacts_dir}")
+    if not os.path.exists(models_dir):
+        print(f"Error: Models directory not found: {models_dir}")
         print()
         print("Please run the training pipeline first:")
         print("  python scripts/run_trials.py")
@@ -277,12 +279,12 @@ def check_artifacts_exist(artifacts_dir):
         return False
     
     for filename, description in required.items():
-        path = os.path.join(artifacts_dir, filename)
+        path = os.path.join(models_dir, filename)
         if not os.path.exists(path):
             missing.append(f"{filename} ({description})")
     
     if missing:
-        print(f"Error: Missing artifacts in {artifacts_dir}:")
+        print(f"Error: Missing models in {models_dir}:")
         for m in missing:
             print(f"  - {m}")
         print()
@@ -293,39 +295,69 @@ def check_artifacts_exist(artifacts_dir):
     return True
 
 
-def analyze_best_models():
+def load_test_data(test_data_path):
+    """Load test data from silver_standard_test.json and convert to expected format."""
+    if not os.path.exists(test_data_path):
+        print(f"Error: Test data not found: {test_data_path}")
+        print()
+        print("Please run prepare_data.py first:")
+        print("  python scripts/prepare_data.py --train-poems 80000 --test-poems 1000")
+        return None
+    
+    with open(test_data_path, "r", encoding="utf-8") as f:
+        poems = json.load(f)
+    
+    # Convert to expected format (line_match -> labels)
+    test_data = []
+    for poem in poems:
+        test_data.append({
+            "dynasty": poem["dynasty"],
+            "couplets": poem["couplets"],
+            "labels": poem["line_match"],
+        })
+    
+    return test_data
+
+
+def analyze_best_models(test_data_path=None):
     """Analyze the best saved models (original functionality)."""
-    artifacts_dir = os.path.join(PROJECT_ROOT, "saved_artifacts")
+    models_dir = os.path.join(PROJECT_ROOT, "results", "models")
     results_dir = os.path.join(PROJECT_ROOT, "results")
     
-    # Check artifacts exist before loading
-    if not check_artifacts_exist(artifacts_dir):
+    if test_data_path is None:
+        test_data_path = os.path.join(PROJECT_ROOT, "data", "silver_standard_test.json")
+    
+    # Check models exist before loading
+    if not check_artifacts_exist(models_dir):
         return
     
-    print("Loading models and data...")
-    tokenizer = BertTokenizerFast.from_pretrained(os.path.join(artifacts_dir, "tokenizer"))
+    # Load test data
+    test_data = load_test_data(test_data_path)
+    if test_data is None:
+        return
+    
+    print(f"Loaded {len(test_data)} poems from test set")
+    print("Loading models...")
+    tokenizer = BertTokenizerFast.from_pretrained(os.path.join(models_dir, "tokenizer"))
     
     char_model = BertForSequenceClassification.from_pretrained(
-        os.path.join(artifacts_dir, "char_model")
+        os.path.join(models_dir, "char_model")
     ).to(device)
-    coup_model = BertForSequenceClassification.from_pretrained(
-        os.path.join(artifacts_dir, "coup_model")
+    couplet_model = BertForSequenceClassification.from_pretrained(
+        os.path.join(models_dir, "couplet_model")
     ).to(device)
     poem4_model = PoemParallelismClassifier.from_pretrained(
-        os.path.join(artifacts_dir, "poem4_model")
+        os.path.join(models_dir, "poem4_model")
     ).to(device)
     poem1_model = BertForSequenceClassification.from_pretrained(
-        os.path.join(artifacts_dir, "poem1_model")
+        os.path.join(models_dir, "poem1_model")
     ).to(device)
 
-    with open(os.path.join(artifacts_dir, "poem4_test_raw.pkl"), "rb") as f:
-        poem4_test_raw = pickle.load(f)
-
     results = generate_comparison_data(
-        poem4_test_raw,
+        test_data,
         poem4_model,
         poem1_model,
-        coup_model,
+        couplet_model,
         char_model,
         tokenizer
     )
@@ -380,6 +412,8 @@ def analyze_best_models():
 
 
 def main():
+    default_test_data = os.path.join(PROJECT_ROOT, "data", "silver_standard_test.json")
+    
     parser = argparse.ArgumentParser(
         description="Analyze model predictions"
     )
@@ -390,6 +424,10 @@ def main():
     parser.add_argument(
         "--aggregate", action="store_true",
         help="Aggregate all comparison files into summary statistics"
+    )
+    parser.add_argument(
+        "--test-data", type=str, default=default_test_data,
+        help="Path to test data JSON (default: data/silver_standard_test.json)"
     )
     args = parser.parse_args()
     
@@ -444,7 +482,7 @@ def main():
     
     else:
         # Default: analyze best saved models
-        analyze_best_models()
+        analyze_best_models(test_data_path=args.test_data)
 
 
 if __name__ == "__main__":

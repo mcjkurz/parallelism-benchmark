@@ -2,15 +2,63 @@
 Shared training utilities for parallelism benchmark models.
 """
 
+import logging
+import random
+
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Sampler
 from torch.optim import AdamW
-from transformers import BertTokenizerFast, BertForSequenceClassification, get_constant_schedule_with_warmup
 from tqdm.auto import tqdm
 
-from datasets import CharPairDataset, CoupletDataset, PoemDataset4Labels, PoemDataset1Label
-from models import PoemParallelismClassifier
+# Suppress transformers warnings before importing
+logging.getLogger('transformers').setLevel(logging.ERROR)
+from transformers import BertTokenizerFast, get_constant_schedule_with_warmup
+
+
+class BalancedBatchSampler(Sampler):
+    """Sampler that ensures each batch has balanced class representation.
+    
+    For binary classification, each batch will have ~50% of each class.
+    This helps prevent training collapse where model predicts all one class.
+    """
+    
+    def __init__(self, dataset, batch_size, label_key="labels"):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.label_key = label_key
+        
+        # Get labels from dataset
+        self.class_indices = {0: [], 1: []}
+        for idx in range(len(dataset)):
+            item = dataset[idx]
+            label = item[label_key].item() if hasattr(item[label_key], 'item') else item[label_key]
+            self.class_indices[label].append(idx)
+        
+        # Calculate number of complete balanced batches we can make
+        self.samples_per_class_per_batch = batch_size // 2
+        min_class_size = min(len(self.class_indices[0]), len(self.class_indices[1]))
+        self.num_batches = min_class_size // self.samples_per_class_per_batch
+        
+    def __iter__(self):
+        # Shuffle indices within each class
+        indices_0 = self.class_indices[0].copy()
+        indices_1 = self.class_indices[1].copy()
+        random.shuffle(indices_0)
+        random.shuffle(indices_1)
+        
+        # Generate balanced batches
+        for i in range(self.num_batches):
+            start = i * self.samples_per_class_per_batch
+            end = start + self.samples_per_class_per_batch
+            
+            batch_indices = indices_0[start:end] + indices_1[start:end]
+            random.shuffle(batch_indices)  # Shuffle within batch
+            
+            yield from batch_indices
+    
+    def __len__(self):
+        return self.num_batches * self.batch_size
 
 # =============================================================================
 # CONFIGURATION
@@ -23,7 +71,11 @@ EPOCHS_POEM1 = 1     # Poem 1-label model
 PRETRAINED_MODEL_NAME = "SIKU-BERT/sikubert"
 COUPLET_TOKENS = ["[CP1]", "[CP2]", "[CP3]", "[CP4]"]
 
-MIN_ACCURACY_THRESHOLD = 0.6  # Minimum accuracy for a valid trial
+# Fixed seed for model initialization - ensures stable classifier weights
+# (Found empirically: seed 1 produces good initialization that doesn't collapse)
+MODEL_INIT_SEED = 1
+
+WEIGHT_DECAY = 0.001  # L2 regularization to reduce overfitting (light)
 # =============================================================================
 
 
@@ -42,7 +94,8 @@ def get_device():
         return torch.device("cpu")
 
 
-def train_model(model, dataset, epochs=1, batch_size=8, lr=2e-5, device=None, verbose=True):
+def train_model(model, dataset, epochs=1, batch_size=8, lr=2e-5, device=None, verbose=True, 
+                weight_decay=WEIGHT_DECAY, use_balanced_batches=True):
     """Train a model on the given dataset.
     
     Args:
@@ -53,6 +106,8 @@ def train_model(model, dataset, epochs=1, batch_size=8, lr=2e-5, device=None, ve
         lr: Learning rate
         device: Device to train on
         verbose: Whether to show progress bars
+        weight_decay: L2 regularization strength (reduces overfitting)
+        use_balanced_batches: If True, use balanced batch sampling (50/50 class ratio per batch)
         
     Returns:
         Trained model
@@ -60,14 +115,19 @@ def train_model(model, dataset, epochs=1, batch_size=8, lr=2e-5, device=None, ve
     if device is None:
         device = get_device()
     
-    train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    if use_balanced_batches:
+        sampler = BalancedBatchSampler(dataset, batch_size)
+        train_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler)
+    else:
+        train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    
     model.to(device)
     model.train()
 
-    optimizer = AdamW(model.parameters(), lr=lr)
+    optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     total_steps = len(train_loader) * epochs
     scheduler = get_constant_schedule_with_warmup(
-        optimizer, num_warmup_steps=int(0.10 * total_steps)
+        optimizer, num_warmup_steps=int(0.05 * total_steps)
     )
 
     for epoch in range(epochs):
@@ -93,41 +153,6 @@ def create_tokenizer():
     tokenizer = BertTokenizerFast.from_pretrained(PRETRAINED_MODEL_NAME)
     tokenizer.add_special_tokens({"additional_special_tokens": COUPLET_TOKENS})
     return tokenizer
-
-
-def train_all_models(char_train_ds, coup_train_ds, poem4_train_ds, poem1_train_ds, 
-                     tokenizer, device=None, verbose=True):
-    """Train all four models and return them."""
-    if device is None:
-        device = get_device()
-    
-    if verbose:
-        print(f"\nTraining Char Model ({EPOCHS_CHAR} epoch(s))...")
-    char_model = BertForSequenceClassification.from_pretrained(PRETRAINED_MODEL_NAME, num_labels=2)
-    char_model = train_model(char_model, char_train_ds, epochs=EPOCHS_CHAR, device=device, verbose=verbose)
-
-    if verbose:
-        print(f"\nTraining Couplet Model ({EPOCHS_COUPLET} epoch(s))...")
-    coup_model = BertForSequenceClassification.from_pretrained(PRETRAINED_MODEL_NAME, num_labels=2)
-    coup_model = train_model(coup_model, coup_train_ds, epochs=EPOCHS_COUPLET, device=device, verbose=verbose)
-
-    if verbose:
-        print(f"\nTraining Poem 4-Label Model ({EPOCHS_POEM4} epoch(s))...")
-    poem4_model = PoemParallelismClassifier.create_initial(
-        pretrained_name=PRETRAINED_MODEL_NAME,
-        tokenizer=tokenizer,
-        couplet_tokens=COUPLET_TOKENS,
-        num_couplets=4,
-        num_labels=2
-    )
-    poem4_model = train_model(poem4_model, poem4_train_ds, epochs=EPOCHS_POEM4, device=device, verbose=verbose)
-
-    if verbose:
-        print(f"\nTraining Poem 1-Label Model ({EPOCHS_POEM1} epoch(s))...")
-    poem1_model = BertForSequenceClassification.from_pretrained(PRETRAINED_MODEL_NAME, num_labels=2)
-    poem1_model = train_model(poem1_model, poem1_train_ds, epochs=EPOCHS_POEM1, device=device, verbose=verbose)
-
-    return char_model, coup_model, poem4_model, poem1_model
 
 
 def free_memory(device=None):

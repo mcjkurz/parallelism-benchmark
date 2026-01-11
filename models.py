@@ -1,5 +1,9 @@
+import logging
 import torch
 import torch.nn as nn
+
+# Suppress transformers warnings
+logging.getLogger('transformers').setLevel(logging.ERROR)
 from transformers import BertPreTrainedModel, BertModel, BertConfig
 
 class PoemParallelismClassifier(BertPreTrainedModel):
@@ -63,4 +67,3 @@ class PoemParallelismClassifier(BertPreTrainedModel):
         model.cp_token_ids.data = torch.tensor(ids, dtype=torch.long)
 
         return model
-

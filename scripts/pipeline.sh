@@ -7,7 +7,7 @@
 #   ./scripts/pipeline.sh 100          # Prepare data + run 100 trials
 #   ./scripts/pipeline.sh --skip-prep  # Skip data preparation, only run trials
 #   ./scripts/pipeline.sh 50 --skip-prep  # Run 50 trials without data prep
-#   ./scripts/pipeline.sh --max-poems 10000  # Only classify 10k poems (faster)
+#   ./scripts/pipeline.sh --train-poems 10000  # Only classify 10k poems (faster)
 #
 
 set -e  # Exit on error
@@ -22,7 +22,7 @@ cd "$PROJECT_ROOT"
 # Configuration
 NUM_TRIALS=1
 SKIP_PREP=false
-MAX_POEMS=""
+TRAIN_POEMS=""
 
 # Parse arguments
 for arg in "$@"; do
@@ -30,13 +30,13 @@ for arg in "$@"; do
         --skip-prep)
             SKIP_PREP=true
             ;;
-        --max-poems)
+        --train-poems)
             # Next arg will be the value
             ;;
         [0-9]*)
-            # Check if previous arg was --max-poems
-            if [[ "${PREV_ARG}" == "--max-poems" ]]; then
-                MAX_POEMS=$arg
+            # Check if previous arg was --train-poems
+            if [[ "${PREV_ARG}" == "--train-poems" ]]; then
+                TRAIN_POEMS=$arg
             else
                 NUM_TRIALS=$arg
             fi
@@ -69,15 +69,15 @@ if [ "$SKIP_PREP" = false ]; then
     echo ""
     
     PREP_CMD="python3 scripts/prepare_data.py"
-    if [ -n "$MAX_POEMS" ]; then
-        PREP_CMD="$PREP_CMD --max-poems $MAX_POEMS"
-        echo "  (Limiting to $MAX_POEMS poems)"
+    if [ -n "$TRAIN_POEMS" ]; then
+        PREP_CMD="$PREP_CMD --train-poems $TRAIN_POEMS"
+        echo "  (Limiting to $TRAIN_POEMS training poems)"
     fi
     $PREP_CMD
     echo ""
 else
-    if [ ! -f "data/silver_standard.json" ]; then
-        echo -e "${YELLOW}Warning: data/silver_standard.json not found!${NC}"
+    if [ ! -f "data/silver_standard_train.json" ]; then
+        echo -e "${YELLOW}Warning: data/silver_standard_train.json not found!${NC}"
         echo "  Run without --skip-prep first to generate the data."
         exit 1
     fi
@@ -124,8 +124,10 @@ echo -e "${BLUE}============================================${NC}"
 echo ""
 
 echo -e "${GREEN}Generated files:${NC}"
-echo "  - data/silver_standard.json (pre-classified poems)"
+echo "  - data/silver_standard_train.json (training poems)"
+echo "  - data/silver_standard_test.json (test poems)"
 echo "  - results/evaluation_results.json (trial results)"
+echo "  - results/models/ (trained models)"
 echo ""
 
 echo -e "${GREEN}Pipeline complete!${NC}"

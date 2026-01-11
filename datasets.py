@@ -1,11 +1,12 @@
 import torch
 from torch.utils.data import Dataset
+from inference import MAX_LEN_CHAR, MAX_LEN_COUPLET, MAX_LEN_POEM4, MAX_LEN_POEM1
 
 class CharPairDataset(Dataset):
-    def __init__(self, data, tokenizer, max_len=8):
+    def __init__(self, data, tokenizer, max_len=MAX_LEN_CHAR):
         self.data = data
         self.tokenizer = tokenizer
-        self.max_len = max_len
+        self.max_len = max_len  # [CLS] c1 [SEP] c2 [SEP] = 5 tokens
 
     def __len__(self):
         return len(self.data)
@@ -14,10 +15,14 @@ class CharPairDataset(Dataset):
         item = self.data[idx]
         c1, c2 = item["character_pair"]
         label = item["label"]
+        # Use sentence-pair format: [CLS] c1 [SEP] c2 [SEP]
+        # This gives token_type_ids that distinguish the two characters,
+        # allowing BERT to compare them (like sentence pair classification)
         encoded = self.tokenizer(
-            c1, c2,
+            c1,
+            c2,
             truncation=True,
-            padding=True,
+            padding="max_length",
             max_length=self.max_len,
             return_tensors="pt"
         )
@@ -26,10 +31,10 @@ class CharPairDataset(Dataset):
         return encoded
 
 class CoupletDataset(Dataset):
-    def __init__(self, data, tokenizer, max_len=24):
+    def __init__(self, data, tokenizer, max_len=MAX_LEN_COUPLET):
         self.data = data
         self.tokenizer = tokenizer
-        self.max_len = max_len
+        self.max_len = max_len  # [CLS] + 5 + 1 + 5 + [SEP] = 13 tokens
 
     def __len__(self):
         return len(self.data)
@@ -51,10 +56,10 @@ class CoupletDataset(Dataset):
         return encoded
 
 class PoemDataset4Labels(Dataset):
-    def __init__(self, data, tokenizer, max_len=256):
+    def __init__(self, data, tokenizer, max_len=MAX_LEN_POEM4):
         self.data = data
         self.tokenizer = tokenizer
-        self.max_len = max_len
+        self.max_len = max_len  # [CLS] + 4×(1+5+1+5+1) + [SEP] = 54 tokens
 
     def __len__(self):
         return len(self.data)
@@ -92,10 +97,10 @@ class PoemDataset4Labels(Dataset):
         return encoded
 
 class PoemDataset1Label(Dataset):
-    def __init__(self, data, tokenizer, max_len=256):
+    def __init__(self, data, tokenizer, max_len=MAX_LEN_POEM1):
         self.data = data
         self.tokenizer = tokenizer
-        self.max_len = max_len
+        self.max_len = max_len  # [CLS] + 4×(5+1+5+1) + [SEP] = 50 tokens
 
     def __len__(self):
         return len(self.data)
