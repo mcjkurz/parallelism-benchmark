@@ -2,12 +2,6 @@
 
 Chinese poetry parallelism detection benchmark across multiple granularity levels.
 
-## Supported Devices
-
-- **CUDA** (NVIDIA GPUs)
-- **MPS** (Apple Silicon - M1/M2/M3)
-- **CPU** (fallback, slower)
-
 ## Setup
 
 ```bash
@@ -58,10 +52,11 @@ Saves results to `data/silver_standard_train.json` and `data/silver_standard_tes
 ### 2. Run Trials
 
 ```bash
-python scripts/run_trials.py                      # Single trial (seed=42)
-python scripts/run_trials.py --trials 100         # 100 trials with different seeds
-python scripts/run_trials.py --training-samples 5000  # Use 5000 training samples per task
-python scripts/run_trials.py --output results/custom.json  # Custom output file
+python scripts/run_trials.py                       # 100 trials (default)
+python scripts/run_trials.py --trials 50           # 50 trials with different seeds
+python scripts/run_trials.py --train-samples 5000  # Use 5000 training samples per task
+python scripts/run_trials.py --test-samples 500    # Use 500 test samples per task
+python scripts/run_trials.py --output results/custom  # Custom output directory
 ```
 
 Each trial trains and evaluates 4 models (char, couplet, poem4, poem1).
@@ -81,11 +76,9 @@ Runs pairwise comparisons between all 4 models and outputs:
 
 ```bash
 python figures/generate_figures.py
-python figures/generate_figures.py --no-outliers  # Disable outlier removal
 ```
 
 This generates publication-quality figures (300 dpi) including:
-- Bar charts with error bars
 - Box plots showing distribution
 - Summary tables (including LaTeX format)
 
@@ -131,16 +124,18 @@ parallelism-benchmark/
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `--trials` | 1 | Number of training/evaluation trials to run |
-| `--training-samples` | 10,000 | Target training samples per task (char, couplet, poem4, poem1) |
+| `--trials` | 100 | Number of training/evaluation trials to run |
+| `--train-samples` | 9,000 | Training samples per task (char, couplet, poem4, poem1) |
+| `--test-samples` | 1,000 | Test samples per task (char, couplet, poem4, poem1) |
 | `--train-poems` | all | Maximum poems for training set during data prep |
-| `--test-poems` | 1000 | Number of poems for test set during data prep |
+| `--test-poems` | 1,000 | Number of poems for test set during data prep |
 | Epochs | 1 | Training epochs for each model (configurable in `train_utils.py`) |
 | Batch size | 8 | Training batch size |
 | Learning rate | 2e-5 | AdamW optimizer learning rate |
 | Warmup | 5% | Linear warmup during first 5% of training steps |
 | Test split | 10% | Portion of data held out for evaluation (train_ratio=0.9) |
-| Random seed | 42 | Base seed (increments by 1 for each trial) |
+| `--model-seed` | 1 | Model initialization seed |
+| `--data-seed` | 100 | Starting data seed (increments by 1 for each trial) |
 
 ### Token Lengths
 
@@ -164,7 +159,7 @@ EPOCHS_POEM4 = 1     # Poem 4-label model
 EPOCHS_POEM1 = 1     # Poem 1-label model
 ```
 
-Edit `scripts/run_trials.py --training-samples` to change target training samples per task (default: 10,000).
+Use `--train-samples` and `--test-samples` arguments in `scripts/run_trials.py` to change sample counts per task.
 
 ## Output Files
 

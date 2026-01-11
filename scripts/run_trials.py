@@ -48,9 +48,9 @@ from transformers import set_seed, BertForSequenceClassification
 MIN_ACCURACY_THRESHOLD = 0.6
 TRAIN_RATIO = 0.9
 
-# Sample sizes (same as previous version)
-TRAIN_SAMPLES = 9000          # Training samples per model (balanced)
-TEST_SAMPLES = 1000           # Test samples per model (balanced)
+# Default sample sizes
+DEFAULT_TRAIN_SAMPLES = 9000  # Training samples per model (balanced)
+DEFAULT_TEST_SAMPLES = 1000   # Test samples per model (balanced)
 
 
 def load_silver_standard(path=None):
@@ -573,7 +573,7 @@ def train_with_retry(model_name, create_model_fn, train_ds, test_ds, epochs,
     return None, None, seed_counter
 
 
-def run_single_trial(poems, tokenizer, device, seed_counter, data_seed):
+def run_single_trial(poems, tokenizer, device, seed_counter, data_seed, train_samples, test_samples):
     """Run a single trial: train all 4 models, evaluate, compute induced metrics.
     
     Returns (result, updated_seed_counter) or (None, updated_seed_counter).
@@ -598,16 +598,16 @@ def run_single_trial(poems, tokenizer, device, seed_counter, data_seed):
     poem1_test_all = create_poem1_data(test_poems)
     
     # Balance training data and limit size
-    char_train = balance_data(char_train_all, key="label", max_samples=TRAIN_SAMPLES)
-    coup_train = balance_data(coup_train_all, key="label", max_samples=TRAIN_SAMPLES)
-    poem1_train = balance_data(poem1_train_all, key="label", max_samples=TRAIN_SAMPLES)
-    poem4_train = balance_poem4_data_per_position(poem4_train_all, target_samples=TRAIN_SAMPLES, force_target=True, label="poem4_train")
+    char_train = balance_data(char_train_all, key="label", max_samples=train_samples)
+    coup_train = balance_data(coup_train_all, key="label", max_samples=train_samples)
+    poem1_train = balance_data(poem1_train_all, key="label", max_samples=train_samples)
+    poem4_train = balance_poem4_data_per_position(poem4_train_all, target_samples=train_samples, force_target=True, label="poem4_train")
     
     # Balance test data and limit size
-    char_test = balance_data(char_test_all, key="label", max_samples=TEST_SAMPLES)
-    coup_test = balance_data(coup_test_all, key="label", max_samples=TEST_SAMPLES)
-    poem1_test = balance_data(poem1_test_all, key="label", max_samples=TEST_SAMPLES)
-    poem4_test = balance_poem4_data_per_position(poem4_test_all, target_samples=TEST_SAMPLES, force_target=False, label="poem4_test")
+    char_test = balance_data(char_test_all, key="label", max_samples=test_samples)
+    coup_test = balance_data(coup_test_all, key="label", max_samples=test_samples)
+    poem1_test = balance_data(poem1_test_all, key="label", max_samples=test_samples)
+    poem4_test = balance_poem4_data_per_position(poem4_test_all, target_samples=test_samples, force_target=False, label="poem4_test")
 
     print(f"    Data sizes: char={len(char_train)}/{len(char_test)}, "
           f"coup={len(coup_train)}/{len(coup_test)}, "
@@ -722,11 +722,13 @@ def run_single_trial(poems, tokenizer, device, seed_counter, data_seed):
     return result, seed_counter
 
 
-def run_trials(poems, tokenizer, device, target_trials, model_seed_start, data_seed_start, max_attempts=500):
+def run_trials(poems, tokenizer, device, target_trials, model_seed_start, data_seed_start,
+               train_samples, test_samples, max_attempts=500):
     """Run trials until we get target_trials successful ones."""
     print(f"\n{'='*60}")
     print(f"Running trials (target: {target_trials} successful)")
     print(f"Model seed start: {model_seed_start}, Data seed start: {data_seed_start}")
+    print(f"Train samples: {train_samples}, Test samples: {test_samples}")
     print(f"Min accuracy threshold: {MIN_ACCURACY_THRESHOLD}")
     print(f"{'='*60}")
     
@@ -742,7 +744,8 @@ def run_trials(poems, tokenizer, device, target_trials, model_seed_start, data_s
     best_seeds = {t: None for t in model_types}
     
     while len(successful_results) < target_trials and (current_data_seed - data_seed_start) < max_attempts:
-        result, seed_counter = run_single_trial(poems, tokenizer, device, seed_counter, current_data_seed)
+        result, seed_counter = run_single_trial(poems, tokenizer, device, seed_counter, current_data_seed,
+                                                train_samples, test_samples)
         
         if result is not None:
             # Track best model for each type separately
@@ -895,6 +898,10 @@ def main():
     
     parser = argparse.ArgumentParser(description="Run parallelism model training trials")
     parser.add_argument("--trials", type=int, default=100, help="Target successful trials (default: 100)")
+    parser.add_argument("--train-samples", type=int, default=DEFAULT_TRAIN_SAMPLES,
+                        help=f"Training samples per task (default: {DEFAULT_TRAIN_SAMPLES})")
+    parser.add_argument("--test-samples", type=int, default=DEFAULT_TEST_SAMPLES,
+                        help=f"Test samples per task (default: {DEFAULT_TEST_SAMPLES})")
     parser.add_argument("--model-seed", type=int, default=1, help="Model initialization seed (default: 1)")
     parser.add_argument("--data-seed", type=int, default=100, help="Starting data seed (default: 100)")
     parser.add_argument("--data", type=str, default=default_data, help="Path to training data")
@@ -920,7 +927,9 @@ def main():
         poems, tokenizer, device,
         target_trials=args.trials,
         model_seed_start=args.model_seed,
-        data_seed_start=args.data_seed
+        data_seed_start=args.data_seed,
+        train_samples=args.train_samples,
+        test_samples=args.test_samples
     )
     
     # Save best models (each from its best trial)

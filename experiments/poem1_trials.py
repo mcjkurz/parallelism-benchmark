@@ -150,7 +150,7 @@ def evaluate_model(model, dataset, device, batch_size=32):
 def train_poem1_with_retry(tokenizer, train_data, test_data, epochs, device, data_seed, seed_counter):
     """Train poem1 model with retries on failure.
     
-    Returns (metrics, updated_seed_counter) or (None, updated_seed_counter).
+    Returns (metrics, model, updated_seed_counter) or (None, None, updated_seed_counter).
     """
     train_ds = PoemDataset1Label(train_data, tokenizer)
     test_ds = PoemDataset1Label(test_data, tokenizer)
@@ -173,22 +173,21 @@ def train_poem1_with_retry(tokenizer, train_data, test_data, epochs, device, dat
               f"rec={metrics['recall']:.4f} f1={metrics['f1']:.4f}")
         
         if metrics["accuracy"] >= MIN_ACCURACY_THRESHOLD:
-            del model
-            free_memory(device)
-            return metrics, seed_counter
+            # Return model for potential best model tracking
+            return metrics, model, seed_counter
         
         print(f"    ✗ accuracy < {MIN_ACCURACY_THRESHOLD}")
         del model
         free_memory(device)
     
     print(f"    ✗ Failed after {MAX_RETRIES_PER_TRIAL} attempts")
-    return None, seed_counter
+    return None, None, seed_counter
 
 
 def run_single_trial(poems, tokenizer, device, seed_counter, data_seed, epochs):
     """Run a single trial: train poem1 model and evaluate.
     
-    Returns (result, updated_seed_counter) or (None, updated_seed_counter).
+    Returns (result, model, updated_seed_counter) or (None, None, updated_seed_counter).
     """
     print(f"\n  [Trial] data_seed={data_seed}, model_seed_start={seed_counter}")
     random.seed(data_seed)
@@ -207,12 +206,12 @@ def run_single_trial(poems, tokenizer, device, seed_counter, data_seed, epochs):
     print(f"    Data sizes: train={len(poem1_train)}, test={len(poem1_test)}")
     
     # Train and evaluate
-    metrics, seed_counter = train_poem1_with_retry(
+    metrics, model, seed_counter = train_poem1_with_retry(
         tokenizer, poem1_train, poem1_test, epochs, device, data_seed, seed_counter
     )
     
     if metrics is None:
-        return None, seed_counter
+        return None, None, seed_counter
     
     print(f"    ✓ Success")
     
@@ -221,11 +220,14 @@ def run_single_trial(poems, tokenizer, device, seed_counter, data_seed, epochs):
         "metrics": metrics,
     }
     
-    return result, seed_counter
+    return result, model, seed_counter
 
 
 def run_trials(poems, tokenizer, device, target_trials, epochs, model_seed_start, data_seed_start, max_attempts=500):
-    """Run trials until we get target_trials successful ones."""
+    """Run trials until we get target_trials successful ones.
+    
+    Returns (results, failed_seeds, best_model).
+    """
     print(f"\n{'='*60}")
     print(f"Poem1 Experiment")
     print(f"{'='*60}")
@@ -239,21 +241,35 @@ def run_trials(poems, tokenizer, device, target_trials, epochs, model_seed_start
     failed_seeds = []
     current_data_seed = data_seed_start
     seed_counter = model_seed_start
+    best_model = None
+    best_f1 = -1
     
     while len(successful_results) < target_trials and (current_data_seed - data_seed_start) < max_attempts:
-        result, seed_counter = run_single_trial(
+        result, model, seed_counter = run_single_trial(
             poems, tokenizer, device, seed_counter, current_data_seed, epochs
         )
         
         if result is not None:
             successful_results.append(result)
             print(f"\n  Progress: {len(successful_results)}/{target_trials} successful trials")
+            
+            # Track best model by F1 score
+            f1 = result["metrics"]["f1"]
+            if f1 > best_f1:
+                if best_model is not None:
+                    del best_model
+                best_f1 = f1
+                best_model = model
+                print(f"    ★ New best model (F1={f1:.4f})")
+            else:
+                del model
+                free_memory(device)
         else:
             failed_seeds.append(current_data_seed)
         
         current_data_seed += 1
     
-    return successful_results, failed_seeds
+    return successful_results, failed_seeds, best_model
 
 
 def aggregate_results(results):
@@ -318,9 +334,25 @@ def print_summary(aggregated):
     print("=" * 70)
 
 
+def save_best_model(model, tokenizer, artifacts_dir):
+    """Save the best model and tokenizer."""
+    model_dir = os.path.join(artifacts_dir, "model")
+    tokenizer_dir = os.path.join(artifacts_dir, "tokenizer")
+    
+    os.makedirs(model_dir, exist_ok=True)
+    os.makedirs(tokenizer_dir, exist_ok=True)
+    
+    model.save_pretrained(model_dir)
+    print(f"Saved best model to {model_dir}")
+    
+    tokenizer.save_pretrained(tokenizer_dir)
+    print(f"Saved tokenizer to {tokenizer_dir}")
+
+
 def main():
     default_data = os.path.join(PROJECT_ROOT, "data", "silver_standard_train.json")
     default_output = os.path.join(SCRIPT_DIR, "poem1_results.json")
+    artifacts_dir = os.path.join(SCRIPT_DIR, "artifacts")
     
     parser = argparse.ArgumentParser(description="Poem1 model training experiment")
     parser.add_argument("--trials", type=int, required=True, help="Number of successful trials to run")
@@ -342,13 +374,17 @@ def main():
     tokenizer = create_tokenizer()
     
     # Run trials
-    results, failed = run_trials(
+    results, failed, best_model = run_trials(
         poems, tokenizer, device,
         target_trials=args.trials,
         epochs=args.epochs,
         model_seed_start=args.model_seed,
         data_seed_start=args.data_seed
     )
+    
+    # Save best model
+    if best_model is not None:
+        save_best_model(best_model, tokenizer, artifacts_dir)
     
     # Aggregate results
     aggregated = aggregate_results(results)

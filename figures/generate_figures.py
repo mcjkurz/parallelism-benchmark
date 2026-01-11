@@ -85,148 +85,6 @@ def get_target_colors():
     }
 
 
-def generate_accuracy_bar_chart(results, output_dir):
-    """Generate bar chart for direct model F1 scores (grouped by target)."""
-    # Order: char | couplet | poem targets (Poem-1 before Poem-4)
-    models = ["char", "couplet", "poem1", "poem4"]
-    labels = ["Character", "Couplet", "Poem-1", "Poem-4"]
-    target_colors = get_target_colors()
-    colors = [target_colors[m] for m in models]
-    
-    means, stds = [], []
-    for model in models:
-        values = extract_trial_values(results, model, "f1")
-        means.append(np.mean(values) if values else 0)
-        stds.append(np.std(values) if values else 0)
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    x = np.arange(len(models))
-    
-    bars = ax.bar(x, means, 0.6, yerr=stds, capsize=5,
-                  color=colors, edgecolor='black', linewidth=0.8,
-                  error_kw={'elinewidth': 1.5, 'capthick': 1.5, 'ecolor': '#333333'})
-    
-    ax.set_ylabel('F1 Score', fontweight='bold')
-    ax.set_xlabel('Model', fontweight='bold')
-    n_trials = results.get("num_trials", 0)
-    ax.set_title(f'Direct Model F1 Score (n={n_trials} trials)', fontweight='bold', pad=15)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.set_ylim(0, 1.05)
-    
-    for bar, mean, std in zip(bars, means, stds):
-        ax.annotate(f'{mean:.3f}',
-                    xy=(bar.get_x() + bar.get_width() / 2, mean + std + 0.02),
-                    ha='center', va='bottom', fontsize=10, fontweight='bold')
-    
-    plt.tight_layout()
-    output_path = os.path.join(output_dir, 'direct_model_f1.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
-    plt.close()
-    print(f"  Saved: {output_path}")
-
-
-def generate_induced_bar_chart(results, output_dir):
-    """Generate bar chart for induced F1 scores (grouped by target)."""
-    # Order: couplet target | poem1 targets | poem4 target
-    models = ["char_to_couplet", "couplet_to_poem", "char_to_poem", "poem4_to_poem"]
-    labels = ["Char→Couplet", "Couplet→Poem1", "Char→Poem1", "Poem4→Poem1"]
-    target_colors = get_target_colors()
-    colors = [target_colors[m] for m in models]
-    
-    means, stds = [], []
-    for model in models:
-        values = extract_trial_values(results, model, "f1")
-        means.append(np.mean(values) if values else 0)
-        stds.append(np.std(values) if values else 0)
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    x = np.arange(len(models))
-    
-    bars = ax.bar(x, means, 0.6, yerr=stds, capsize=5,
-                  color=colors, edgecolor='black', linewidth=0.8,
-                  error_kw={'elinewidth': 1.5, 'capthick': 1.5, 'ecolor': '#333333'})
-    
-    ax.set_ylabel('F1 Score', fontweight='bold')
-    ax.set_xlabel('Induction Path', fontweight='bold')
-    n_trials = results.get("num_trials", 0)
-    ax.set_title(f'Induced F1 Score (n={n_trials} trials)', fontweight='bold', pad=15)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.set_ylim(0, 1.05)
-    
-    for bar, mean, std in zip(bars, means, stds):
-        ax.annotate(f'{mean:.3f}',
-                    xy=(bar.get_x() + bar.get_width() / 2, mean + std + 0.02),
-                    ha='center', va='bottom', fontsize=10, fontweight='bold')
-    
-    # Add dividers between target groups
-    ax.axvline(x=0.5, color='#555555', linestyle='--', linewidth=2, alpha=0.8)   # After couplet target
-    ax.axvline(x=2.5, color='#555555', linestyle='--', linewidth=2, alpha=0.8)   # After poem1 targets
-    
-    plt.tight_layout()
-    output_path = os.path.join(output_dir, 'induced_f1.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
-    plt.close()
-    print(f"  Saved: {output_path}")
-
-
-def generate_combined_bar_chart(results, output_dir):
-    """Generate combined bar chart grouped by target: char | couplet | poem1 | poem4."""
-    # Grouped: Character | Couplet group | Poem-1 group | Poem-4 group
-    models = [
-        "char",
-        "couplet", "char_to_couplet",
-        "poem1", "couplet_to_poem", "char_to_poem",
-        "poem4", "poem4_to_poem"
-    ]
-    labels = [
-        "Character",
-        "Couplet", "Char→Couplet",
-        "Poem-1", "Couplet→Poem1", "Char→Poem1",
-        "Poem-4", "Poem4→Poem1"
-    ]
-    target_colors = get_target_colors()
-    colors = [target_colors[m] for m in models]
-    
-    means, stds = [], []
-    for model in models:
-        values = extract_trial_values(results, model, "f1")
-        means.append(np.mean(values) if values else 0)
-        stds.append(np.std(values) if values else 0)
-    
-    fig, ax = plt.subplots(figsize=(14, 6))
-    x = np.arange(len(models))
-    
-    bars = ax.bar(x, means, 0.65, yerr=stds, capsize=5,
-                  color=colors, edgecolor='black', linewidth=0.8,
-                  error_kw={'elinewidth': 1.5, 'capthick': 1.5, 'ecolor': '#333333'})
-    
-    ax.set_ylabel('F1 Score', fontweight='bold')
-    ax.set_xlabel('Model / Induction', fontweight='bold')
-    n_trials = results.get("num_trials", 0)
-    ax.set_title(f'Model Performance by Target (n={n_trials} trials)', fontweight='bold', pad=15)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.set_ylim(0, 1.05)
-    
-    for bar, mean, std in zip(bars, means, stds):
-        ax.annotate(f'{mean:.3f}',
-                    xy=(bar.get_x() + bar.get_width() / 2, mean + std + 0.02),
-                    ha='center', va='bottom', fontsize=9, fontweight='bold')
-    
-    # Add dividers between target groups (more visible)
-    ax.axvline(x=0.5, color='#555555', linestyle='--', linewidth=2, alpha=0.8)  # After char
-    ax.axvline(x=2.5, color='#555555', linestyle='--', linewidth=2, alpha=0.8)  # After couplet group
-    ax.axvline(x=5.5, color='#555555', linestyle='--', linewidth=2, alpha=0.8)  # After poem1 group
-    
-    plt.tight_layout()
-    output_path = os.path.join(output_dir, 'model_f1_comparison.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
-    plt.close()
-    print(f"  Saved: {output_path}")
-
-
 def generate_boxplot(results, output_dir):
     """Generate box plot grouped by target: char | couplet | poem1 | poem4."""
     # Grouped: Character | Couplet group | Poem-1 group | Poem-4 group
@@ -239,8 +97,8 @@ def generate_boxplot(results, output_dir):
     labels = [
         "Character",
         "Couplet", "Char→Couplet",
-        "Poem-1", "Couplet→Poem1", "Char→Poem1",
-        "Poem-4", "Poem4→Poem1"
+        "Poem-1", "Couplet→Poem-1", "Char→Poem-1",
+        "Poem-4", "Poem-4→Poem-1"
     ]
     target_colors = get_target_colors()
     
@@ -284,9 +142,7 @@ def generate_boxplot(results, output_dir):
         patch.set_linewidth(1.5)
     
     ax.set_ylabel('F1 Score', fontweight='bold')
-    ax.set_xlabel('Model / Induction', fontweight='bold')
-    n_trials = results.get("num_trials", 0)
-    ax.set_title(f'F1 Score Distribution by Target ({n_trials} trials)', fontweight='bold', pad=15)
+    ax.set_xlabel('Model / Inference', fontweight='bold')
     ax.set_ylim(0.5, 1.02)
     
     # Add dividers between target groups (positions are 1-indexed for boxplot, more visible)
@@ -302,62 +158,6 @@ def generate_boxplot(results, output_dir):
     
     plt.tight_layout()
     output_path = os.path.join(output_dir, 'model_f1_boxplot.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
-    plt.close()
-    print(f"  Saved: {output_path}")
-
-
-def generate_metrics_comparison(results, output_dir):
-    """Generate grouped bar chart for all metrics (grouped by target)."""
-    # Grouped: Character | Couplet group | Poem-1 group | Poem-4 group
-    models = [
-        "char",
-        "couplet", "char_to_couplet",
-        "poem1", "couplet_to_poem", "char_to_poem",
-        "poem4", "poem4_to_poem"
-    ]
-    labels = ["Char", "Coup", "Ch→Co", "P1", "Co→P1", "Ch→P1", "P4", "P4→P1"]
-    metrics = ["accuracy", "precision", "recall", "f1"]
-    metric_colors = ['#2E86AB', '#A23B72', '#F18F01', '#1B998B']
-    
-    stats = results.get("statistics", {})
-    
-    fig, ax = plt.subplots(figsize=(16, 6))
-    x = np.arange(len(models))
-    width = 0.2
-    
-    for i, metric in enumerate(metrics):
-        means = []
-        stds = []
-        for model in models:
-            if model in stats and metric in stats[model]:
-                means.append(stats[model][metric]["mean"])
-                stds.append(stats[model][metric]["std"])
-            else:
-                means.append(0)
-                stds.append(0)
-        
-        offset = (i - 1.5) * width
-        ax.bar(x + offset, means, width, yerr=stds, capsize=3,
-               label=metric.capitalize(), color=metric_colors[i],
-               edgecolor='black', linewidth=0.5,
-               error_kw={'elinewidth': 1, 'capthick': 1, 'ecolor': '#333333'})
-    
-    ax.set_ylabel('Score', fontweight='bold')
-    ax.set_xlabel('Model / Induction', fontweight='bold')
-    ax.set_title('All Metrics Comparison by Target', fontweight='bold', pad=15)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.set_ylim(0, 1.15)
-    ax.legend(loc='upper right', ncol=4)
-    
-    # Add dividers between target groups (more visible)
-    ax.axvline(x=0.5, color='#555555', linestyle='--', linewidth=2, alpha=0.8)  # After char
-    ax.axvline(x=2.5, color='#555555', linestyle='--', linewidth=2, alpha=0.8)  # After couplet group
-    ax.axvline(x=5.5, color='#555555', linestyle='--', linewidth=2, alpha=0.8)  # After poem1 group
-    
-    plt.tight_layout()
-    output_path = os.path.join(output_dir, 'all_metrics_comparison.png')
     plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.close()
     print(f"  Saved: {output_path}")
@@ -451,11 +251,7 @@ def main():
     
     print()
     print("Generating figures...")
-    generate_accuracy_bar_chart(results, OUTPUT_DIR)
-    generate_induced_bar_chart(results, OUTPUT_DIR)
-    generate_combined_bar_chart(results, OUTPUT_DIR)
     generate_boxplot(results, OUTPUT_DIR)
-    generate_metrics_comparison(results, OUTPUT_DIR)
     
     print_comparison_table(results)
     

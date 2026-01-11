@@ -6,6 +6,9 @@ with attention to the second line in the inner couplets (couplets 2 and 3).
 
 Uses Spearman rank correlation to measure similarity of attention patterns.
 
+Prerequisites:
+    - Run poem1_trials.py first to train and save a model to experiments/artifacts/
+
 Usage:
     python experiments/attention_correlation.py
 """
@@ -25,12 +28,14 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, PROJECT_ROOT)
 
 from transformers import BertForSequenceClassification, BertTokenizerFast
-
-from attention_visualization import (
-    ARTIFACTS_DIR, MODEL_DIR, TOKENIZER_DIR, DATA_FILE,
-    artifacts_exist, predict_with_attention
-)
 from train_utils import get_device
+
+# Directories
+ARTIFACTS_DIR = os.path.join(SCRIPT_DIR, "artifacts")
+MODEL_DIR = os.path.join(ARTIFACTS_DIR, "model")
+TOKENIZER_DIR = os.path.join(ARTIFACTS_DIR, "tokenizer")
+DATA_FILE = os.path.join(ARTIFACTS_DIR, "data.json")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "attention_output")
 
 # Configuration
 TOP_N = 20  # Number of top poems to show
@@ -39,22 +44,84 @@ PUNCT_THRESHOLD = 0.40  # Attention ratio threshold for "punctuation-focused" he
 MIN_COUPLET_BALANCE = 0.25  # Minimum attention ratio for the less-attended inner couplet
 
 
-def load_artifacts(device):
-    """Load saved model, tokenizer, and data."""
-    if not artifacts_exist():
-        print("Error: Artifacts not found. Run attention_visualization.py first.")
-        sys.exit(1)
+def check_model_exists():
+    """Check if trained model exists in artifacts directory."""
+    if not os.path.exists(MODEL_DIR):
+        raise FileNotFoundError(
+            f"Model not found at {MODEL_DIR}\n"
+            "Please run poem1_trials.py first to train a model:\n"
+            "  python experiments/poem1_trials.py --trials 1 --epochs 1"
+        )
+    if not os.path.exists(TOKENIZER_DIR):
+        raise FileNotFoundError(
+            f"Tokenizer not found at {TOKENIZER_DIR}\n"
+            "Please run poem1_trials.py first to train a model:\n"
+            "  python experiments/poem1_trials.py --trials 1 --epochs 1"
+        )
+
+
+def load_model(device):
+    """Load saved model and tokenizer from artifacts."""
+    check_model_exists()
     
-    print("Loading saved artifacts...")
+    print("Loading model and tokenizer...")
     tokenizer = BertTokenizerFast.from_pretrained(TOKENIZER_DIR)
     model = BertForSequenceClassification.from_pretrained(MODEL_DIR)
     model.to(device)
     model.eval()
+    print(f"  Loaded model from {MODEL_DIR}")
+    print(f"  Loaded tokenizer from {TOKENIZER_DIR}")
     
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    return model, tokenizer
+
+
+def load_test_poems():
+    """Load test poems from silver_standard_test.json."""
+    test_path = os.path.join(PROJECT_ROOT, "data", "silver_standard_test.json")
+    if not os.path.exists(test_path):
+        raise FileNotFoundError(
+            f"Test data not found at {test_path}\n"
+            "Please run prepare_data.py first to generate test data:\n"
+            "  python scripts/prepare_data.py"
+        )
     
-    return model, tokenizer, data["test"]
+    with open(test_path, "r", encoding="utf-8") as f:
+        poems = json.load(f)
+    
+    # Convert to expected format with IDs
+    test_data = []
+    for idx, poem in enumerate(poems):
+        if len(poem["couplets"]) == 4 and len(poem["line_match"]) == 4:
+            # Regulated if inner couplets (indices 1,2) are both parallel
+            label = 1 if (poem["line_match"][1] == 1 and poem["line_match"][2] == 1) else 0
+            test_data.append({
+                "id": idx,
+                "couplets": poem["couplets"],
+                "label": label,
+                "line_match": poem["line_match"]
+            })
+    
+    return test_data
+
+
+def predict_with_attention(model, tokenizer, couplets, device):
+    """Get prediction and attention weights."""
+    text = "".join([l1 + "，" + l2 + "。" for l1, l2 in couplets])
+    encoded = tokenizer(
+        text,
+        truncation=True,
+        padding="max_length",
+        max_length=52,
+        return_tensors="pt"
+    ).to(device)
+    
+    model.eval()
+    with torch.no_grad():
+        outputs = model(**encoded, output_attentions=True)
+        pred = outputs.logits.argmax(dim=-1).item()
+        attentions = torch.stack(outputs.attentions, dim=0).squeeze(1)
+    
+    return pred, attentions, encoded["input_ids"].squeeze(0)
 
 
 def get_couplet_attention_correlation(attentions, couplet_idx, layer=-1):
@@ -282,13 +349,55 @@ def analyze_poems(poems, model, tokenizer, device, desc="Analyzing"):
     return results
 
 
+def result_to_json(r):
+    """Convert result to JSON-serializable format."""
+    def safe_float(v):
+        return float(v) if not np.isnan(v) else None
+    return {
+        "id": r["id"],
+        "couplets": r["couplets"],
+        "line_match": r["line_match"],
+        "label": r["label"],
+        "pred": r["pred"],
+        "correct": r["correct"],
+        "mean_spearman": safe_float(r["mean_spearman"]),
+        "mean_pearson": safe_float(r["mean_pearson"]),
+        "mean_spearman_c2": safe_float(r["mean_spearman_c2"]),
+        "mean_spearman_c3": safe_float(r["mean_spearman_c3"]),
+        "mean_pearson_c2": safe_float(r["mean_pearson_c2"]),
+        "mean_pearson_c3": safe_float(r["mean_pearson_c3"]),
+        "max_spearman": safe_float(r["max_spearman"]),
+        "max_pearson": safe_float(r["max_pearson"]),
+        "num_punct_heads": r["num_punct_heads"],
+        "punct_scores": [(h, float(s)) for h, s in r["punct_scores"]],
+        "couplet2_ratio": float(r["couplet2_ratio"]),
+        "couplet3_ratio": float(r["couplet3_ratio"]),
+        "min_couplet_balance": float(r["min_couplet_balance"]),
+    }
+
+
+def save_data_json(test_data):
+    """Save test data to data.json for visualization script."""
+    os.makedirs(ARTIFACTS_DIR, exist_ok=True)
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=2)
+    print(f"Saved test data to {DATA_FILE}")
+
+
 def main():
     device = get_device()
     print(f"Device: {device}")
     
-    # Load artifacts
-    model, tokenizer, test_data = load_artifacts(device)
+    # Load model and tokenizer
+    model, tokenizer = load_model(device)
+    
+    # Load test poems from silver_standard_test.json
+    print("\nLoading test poems from silver_standard_test.json...")
+    test_data = load_test_poems()
     print(f"Loaded {len(test_data)} test poems")
+    
+    # Save test data to data.json (for visualization script)
+    save_data_json(test_data)
     
     # Split by label
     regulated_poems = [p for p in test_data if p["label"] == 1]
@@ -391,44 +500,17 @@ def main():
         print(f"   Couplet 3: {couplet3[0]}，{couplet3[1]}  (r={result['mean_pearson_c3']:.3f}, ρ={result['mean_spearman_c3']:.3f})")
     
     # Save results to JSON (full and filtered)
-    output_dir = os.path.join(SCRIPT_DIR, "attention_output")
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Convert numpy arrays to lists for JSON serialization
-    def result_to_json(r):
-        def safe_float(v):
-            return float(v) if not np.isnan(v) else None
-        return {
-            "id": r["id"],
-            "couplets": r["couplets"],
-            "line_match": r["line_match"],
-            "label": r["label"],
-            "pred": r["pred"],
-            "correct": r["correct"],
-            "mean_spearman": safe_float(r["mean_spearman"]),
-            "mean_pearson": safe_float(r["mean_pearson"]),
-            "mean_spearman_c2": safe_float(r["mean_spearman_c2"]),
-            "mean_spearman_c3": safe_float(r["mean_spearman_c3"]),
-            "mean_pearson_c2": safe_float(r["mean_pearson_c2"]),
-            "mean_pearson_c3": safe_float(r["mean_pearson_c3"]),
-            "max_spearman": safe_float(r["max_spearman"]),
-            "max_pearson": safe_float(r["max_pearson"]),
-            "num_punct_heads": r["num_punct_heads"],
-            "punct_scores": [(h, float(s)) for h, s in r["punct_scores"]],
-            "couplet2_ratio": float(r["couplet2_ratio"]),
-            "couplet3_ratio": float(r["couplet3_ratio"]),
-            "min_couplet_balance": float(r["min_couplet_balance"]),
-        }
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     # Save full results
-    output_file = os.path.join(output_dir, "correlation_results.json")
+    output_file = os.path.join(OUTPUT_DIR, "correlation_results.json")
     json_results = [result_to_json(r) for r in results_sorted]
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(json_results, f, ensure_ascii=False, indent=2)
     print(f"\nSaved full results to: {output_file}")
     
     # Save filtered results
-    output_file_filtered = os.path.join(output_dir, "correlation_results_filtered.json")
+    output_file_filtered = os.path.join(OUTPUT_DIR, "correlation_results_filtered.json")
     json_filtered = [result_to_json(r) for r in results_filtered]
     with open(output_file_filtered, "w", encoding="utf-8") as f:
         json.dump(json_filtered, f, ensure_ascii=False, indent=2)
@@ -492,4 +574,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -1,7 +1,6 @@
 # Saved models and artifacts
 saved_artifacts/
 experiments/artifacts/
-experiments/attention_output/
 results/models
 
 
