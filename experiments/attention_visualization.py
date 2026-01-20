@@ -41,7 +41,7 @@ except ImportError:
 
 # Directories
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "attention_output")
-ARTIFACTS_DIR = os.path.join(SCRIPT_DIR, "artifacts")
+ARTIFACTS_DIR = os.path.join(SCRIPT_DIR, "artifacts_poem1")
 MODEL_DIR = os.path.join(ARTIFACTS_DIR, "model")
 TOKENIZER_DIR = os.path.join(ARTIFACTS_DIR, "tokenizer")
 DATA_FILE = os.path.join(ARTIFACTS_DIR, "data.json")

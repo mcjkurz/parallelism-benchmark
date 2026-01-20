@@ -352,7 +352,7 @@ def save_best_model(model, tokenizer, artifacts_dir):
 def main():
     default_data = os.path.join(PROJECT_ROOT, "data", "silver_standard_train.json")
     default_output = os.path.join(SCRIPT_DIR, "poem1_results.json")
-    artifacts_dir = os.path.join(SCRIPT_DIR, "artifacts")
+    artifacts_dir = os.path.join(SCRIPT_DIR, "artifacts_poem1")
     
     parser = argparse.ArgumentParser(description="Poem1 model training experiment")
     parser.add_argument("--trials", type=int, required=True, help="Number of successful trials to run")

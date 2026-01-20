@@ -1,6 +1,8 @@
 # Saved models and artifacts
 saved_artifacts/
 experiments/artifacts/
+experiments/artifacts_poem1/
+experiments/artifacts_poem4/
 results/models
 
 

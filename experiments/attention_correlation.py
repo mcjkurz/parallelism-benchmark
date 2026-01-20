@@ -7,7 +7,7 @@ with attention to the second line in the inner couplets (couplets 2 and 3).
 Uses Spearman rank correlation to measure similarity of attention patterns.
 
 Prerequisites:
-    - Run poem1_trials.py first to train and save a model to experiments/artifacts/
+    - Run poem1_trials.py first to train and save a model to experiments/artifacts_poem1/
 
 Usage:
     python experiments/attention_correlation.py
@@ -31,7 +31,7 @@ from transformers import BertForSequenceClassification, BertTokenizerFast
 from train_utils import get_device
 
 # Directories
-ARTIFACTS_DIR = os.path.join(SCRIPT_DIR, "artifacts")
+ARTIFACTS_DIR = os.path.join(SCRIPT_DIR, "artifacts_poem1")
 MODEL_DIR = os.path.join(ARTIFACTS_DIR, "model")
 TOKENIZER_DIR = os.path.join(ARTIFACTS_DIR, "tokenizer")
 DATA_FILE = os.path.join(ARTIFACTS_DIR, "data.json")
