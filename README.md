@@ -111,8 +111,8 @@ For 五言律詩 (pentasyllabic regulated verse):
 |-------|--------------|------------|
 | Character | `[CLS] c1 [SEP] c2 [SEP]` | 8 |
 | Couplet | `[CLS] 5chars，5chars [SEP]` | 16 |
-| Poem4 | `[CLS] [CP1] line1。... [CP4] line4。[SEP]` | 56 |
-| Poem1 | `[CLS] line1。line2。line3。line4。[SEP]` | 52 |
+| Poem4 | `[CLS] [CP1] couplet1。... [CP4] couplet4。[SEP]` | 56 |
+| Poem1 | `[CLS] couplet1。couplet2。couplet3。couplet4。[SEP]` | 52 |
 
 ## Output Files
 
